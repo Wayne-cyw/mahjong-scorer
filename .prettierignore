@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+coverage
+pnpm-lock.yaml
+public/sw.js
+public/swe-worker-*.js
+Mahjong Score Tracker — *.md

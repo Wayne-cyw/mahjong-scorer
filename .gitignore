@@ -1,0 +1,65 @@
+# Design docs (kept local only)
+Mahjong Score Tracker — Engineering Design.md
+Mahjong Score Tracker — Product Direction.md
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js build output
+.next/
+out/
+next-env.d.ts
+
+# Generated service worker (Serwist)
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+public/swe-worker-*.js.map
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+.lighthouseci/
+# Labelled recognition photos are large; keep the eval script, not the images (ADR-48)
+tests/recognition-eval/photos/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Sentry
+.sentryclirc
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Agent worktrees (parallel subagent checkouts)
+.claude/worktrees/

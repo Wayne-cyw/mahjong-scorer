@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Table screen JS",
+    "path": ".next/static/chunks/**/*.js",
+    "limit": "170 KB",
+    "gzip": true
+  }
+]
