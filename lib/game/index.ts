@@ -18,3 +18,12 @@ export {
   type HandWonPayload,
   type StoredEvent,
 } from './events';
+export {
+  applyVoidsAndCorrections,
+  handLabel,
+  initialState,
+  reduce,
+  replay,
+  type GameState,
+} from './reducer';
+export { deriveHistory, previewEdit, type HandRecord, type PreviewEditResult } from './history';
