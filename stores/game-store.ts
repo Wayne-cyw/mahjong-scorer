@@ -137,14 +137,16 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
     },
 
     assignSeats: async (seatOf) => {
-      const { gameId } = get();
+      const { gameId, state } = get();
       if (gameId === null) return refuse('No game loaded');
+      if (state.status !== 'setup') return refuse('Game has already left setup');
       await commit(gameId, { type: 'SeatsAssigned', seatOf });
     },
 
     chooseFirstDealer: async (seat, dice) => {
-      const { gameId } = get();
+      const { gameId, state } = get();
       if (gameId === null) return refuse('No game loaded');
+      if (state.status !== 'setup') return refuse('Game has already left setup');
       await commit(gameId, { type: 'FirstDealerChosen', seat, dice });
     },
 

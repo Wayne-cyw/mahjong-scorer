@@ -231,6 +231,29 @@ describe('refused actions', () => {
     expect(useGameStore.getState().error).toBeTruthy();
     expect(useGameStore.getState().events).toHaveLength(0);
   });
+
+  it('assignSeats and chooseFirstDealer refuse (append nothing) once the game has left setup', async () => {
+    const gameId = await setupPlayingGame();
+    expect(useGameStore.getState().state.status).toBe('playing');
+    const eventsBefore = useGameStore.getState().events.length;
+    const stateBefore = useGameStore.getState().state;
+
+    const playerIds = useGameStore.getState().state.playerIds;
+    const seatOf = Object.fromEntries(playerIds.map((id, i) => [id, i as Seat]));
+
+    await useGameStore.getState().assignSeats(seatOf);
+    expect(useGameStore.getState().error).toBeTruthy();
+    expect(useGameStore.getState().events).toHaveLength(eventsBefore);
+    expect(useGameStore.getState().state).toEqual(stateBefore);
+
+    await useGameStore.getState().chooseFirstDealer(2);
+    expect(useGameStore.getState().error).toBeTruthy();
+    expect(useGameStore.getState().events).toHaveLength(eventsBefore);
+    expect(useGameStore.getState().state).toEqual(stateBefore);
+
+    const stored = await loadEvents(gameId);
+    expect(stored).toHaveLength(eventsBefore);
+  });
 });
 
 describe('duplicate seq retry', () => {
