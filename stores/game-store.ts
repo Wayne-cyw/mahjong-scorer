@@ -92,14 +92,22 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
         loading: false,
         error: null,
       });
-      // Keep the denormalized `games` row (used for fast listing) in sync with the
-      // replayed lifecycle status, but only write when it actually changed.
-      if (state.status !== previousStatus) {
-        await setGameStatus(gameId, state.status);
-      }
     } catch (error) {
       set({ loading: false, error: errorMessage(error) });
       throw error;
+    }
+    // Keep the denormalized `games` row (used for fast listing) in sync with the
+    // replayed lifecycle status, but only write when it actually changed. This is
+    // best-effort: the event append and state update above are already durable and
+    // correct, so a failure here must not surface as a `commit()` rejection or set
+    // the store's `error` (a caller like `await action(); goToNextScreen()` must
+    // still navigate even if this denormalized write fails).
+    if (get().state.status !== previousStatus) {
+      try {
+        await setGameStatus(gameId, get().state.status);
+      } catch (error) {
+        console.error('Failed to sync games row status', error);
+      }
     }
   };
 

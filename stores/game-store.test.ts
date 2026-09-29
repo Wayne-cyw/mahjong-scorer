@@ -312,6 +312,47 @@ describe('GameRow.status sync', () => {
   });
 });
 
+describe('setGameStatus failure isolation', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('still commits the event and advances status when setGameStatus rejects, without setting error', async () => {
+    const gameId = await useGameStore
+      .getState()
+      .createGame({ playerNames: ['Alice', 'Bob', 'Cara', 'Dee'], presetId: ruleset.id });
+    const playerIds = useGameStore.getState().state.playerIds;
+    const seatOf = Object.fromEntries(playerIds.map((id, i) => [id, i as Seat]));
+    await useGameStore.getState().assignSeats(seatOf);
+
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const boom = new Error('boom: games row write failed');
+    vi.spyOn(dbModule, 'setGameStatus').mockRejectedValueOnce(boom);
+
+    const eventsBefore = useGameStore.getState().events.length;
+
+    // chooseFirstDealer moves status setup -> playing, which triggers the
+    // (now-failing) setGameStatus call inside commit().
+    await expect(useGameStore.getState().chooseFirstDealer(0)).resolves.toBeUndefined();
+
+    // The event was durably appended and the derived state correctly advanced,
+    // despite the games-row sync failing.
+    expect(useGameStore.getState().events).toHaveLength(eventsBefore + 1);
+    expect(useGameStore.getState().state.status).toBe('playing');
+    expect(useGameStore.getState().state.dealer).toBe(0);
+
+    // The failure must not surface as a store error: a caller doing
+    // `try { await chooseFirstDealer(...); goToNextScreen(); } catch { showError(); }`
+    // should still navigate.
+    expect(useGameStore.getState().error).toBeNull();
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    const stored = await loadEvents(gameId);
+    expect(stored).toHaveLength(eventsBefore + 1);
+  });
+});
+
 describe('duplicate seq retry', () => {
   afterEach(() => {
     vi.restoreAllMocks();
