@@ -16,6 +16,7 @@ import {
   createGame as dbCreateGame,
   loadEvents,
   savePlayer,
+  setGameStatus,
 } from '@/lib/db';
 
 /** The one place in the app that calls `appendEvent`: every write goes through this store. */
@@ -79,16 +80,23 @@ async function appendAndSync(
 export const useGameStore = create<GameStoreState>()((set, get) => {
   /** Build the payload, append, replay, and set — the pattern every write action follows (ADR-07). */
   const commit = async (gameId: string, payload: GameEvent): Promise<void> => {
+    const previousStatus = get().state.status;
     set({ loading: true, error: null });
     try {
       const events = await appendAndSync(gameId, get().events, payload);
+      const state = replay(events);
       set({
         events,
-        state: replay(events),
+        state,
         history: deriveHistory(events),
         loading: false,
         error: null,
       });
+      // Keep the denormalized `games` row (used for fast listing) in sync with the
+      // replayed lifecycle status, but only write when it actually changed.
+      if (state.status !== previousStatus) {
+        await setGameStatus(gameId, state.status);
+      }
     } catch (error) {
       set({ loading: false, error: errorMessage(error) });
       throw error;

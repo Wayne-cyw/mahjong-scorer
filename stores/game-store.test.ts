@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as dbModule from '@/lib/db';
 import { getDb, loadEvents } from '@/lib/db';
 import { basePointsFor, getPreset, settle } from '@/lib/scoring';
 import { initialState, nextSeat } from '@/lib/game';
@@ -253,6 +254,61 @@ describe('refused actions', () => {
 
     const stored = await loadEvents(gameId);
     expect(stored).toHaveLength(eventsBefore);
+  });
+});
+
+describe('GameRow.status sync', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('updates the games row when chooseFirstDealer moves status setup -> playing, but not on assignSeats', async () => {
+    const db = getDb();
+    const setGameStatusSpy = vi.spyOn(dbModule, 'setGameStatus');
+
+    const gameId = await useGameStore
+      .getState()
+      .createGame({ playerNames: ['Alice', 'Bob', 'Cara', 'Dee'], presetId: ruleset.id });
+    const playerIds = useGameStore.getState().state.playerIds;
+    const seatOf = Object.fromEntries(playerIds.map((id, i) => [id, i as Seat]));
+
+    // assignSeats does not change status: no redundant write to the games row.
+    await useGameStore.getState().assignSeats(seatOf);
+    expect(useGameStore.getState().state.status).toBe('setup');
+    expect((await db.games.get(gameId))?.status).toBe('setup');
+    expect(setGameStatusSpy).not.toHaveBeenCalled();
+
+    // chooseFirstDealer moves setup -> playing: the games row must follow.
+    await useGameStore.getState().chooseFirstDealer(0);
+    expect(useGameStore.getState().state.status).toBe('playing');
+    expect((await db.games.get(gameId))?.status).toBe('playing');
+    expect(setGameStatusSpy).toHaveBeenCalledExactlyOnceWith(gameId, 'playing');
+  });
+
+  it('does not call setGameStatus again for actions that leave status unchanged (e.g. mid-game recordWin)', async () => {
+    const gameId = await setupPlayingGame();
+    const db = getDb();
+    const setGameStatusSpy = vi.spyOn(dbModule, 'setGameStatus');
+
+    await useGameStore.getState().rollDice();
+    await useGameStore.getState().recordWin({ winner: 1, discarder: 0, fan: ruleset.minFan });
+
+    expect(useGameStore.getState().state.status).toBe('playing');
+    expect((await db.games.get(gameId))?.status).toBe('playing');
+    expect(setGameStatusSpy).not.toHaveBeenCalled();
+  });
+
+  it('updates the games row to "ended" after endGame, driven through a full game', async () => {
+    const gameId = await setupPlayingGame();
+    const db = getDb();
+
+    await playToComplete();
+    expect(useGameStore.getState().state.status).toBe('complete');
+    expect((await db.games.get(gameId))?.status).toBe('complete');
+
+    await useGameStore.getState().endGame('completed');
+    expect(useGameStore.getState().state.status).toBe('ended');
+    expect((await db.games.get(gameId))?.status).toBe('ended');
   });
 });
 
