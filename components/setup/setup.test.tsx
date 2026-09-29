@@ -139,4 +139,36 @@ describe('SetupClient: submit flow', () => {
       throw new Error('expected FirstDealerChosen');
     expect(firstDealerChosen.seat).toBe(1);
   });
+
+  it('ignores a second tap while the first submission is still in flight (no double game creation)', async () => {
+    render(<SetupClient />);
+
+    fillNames(['Alice', 'Bob', 'Cara', 'Dee']);
+    fireEvent.click(screen.getByRole('button', { name: 'Next: rules' }));
+    await screen.findByRole('radio', { name: /Hong Kong, discarder pays/i });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next: first dealer' }));
+
+    const bobButton = await screen.findByRole('button', { name: 'Bob' });
+    // Fire two rapid taps before the first submission settles.
+    fireEvent.click(bobButton);
+    fireEvent.click(bobButton);
+
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    // Give any second, erroneous submission a chance to land before asserting it didn't.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(push).toHaveBeenCalledTimes(1);
+
+    const [url] = push.mock.calls[0] as [string];
+    const gameId = url.replace('/game/', '');
+    const events = await loadEvents(gameId);
+    expect(events.map((e) => e.payload.type)).toEqual([
+      'GameCreated',
+      'SeatsAssigned',
+      'FirstDealerChosen',
+    ]);
+
+    const db = getDb();
+    expect(await db.games.count()).toBe(1);
+  });
 });

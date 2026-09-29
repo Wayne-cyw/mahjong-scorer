@@ -70,6 +70,7 @@ export function SetupClient() {
   }
 
   async function handleFirstDealerChosen(seat: Seat): Promise<void> {
+    if (submitting) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -141,7 +142,11 @@ export function SetupClient() {
 
       {step === 'dealer' && (
         <>
-          <FirstDealer players={dealerPlayers} onChosen={handleFirstDealerChosen} />
+          <FirstDealer
+            players={dealerPlayers}
+            onChosen={handleFirstDealerChosen}
+            disabled={submitting}
+          />
           {submitError && (
             <p role="alert" className="text-red-600">
               {submitError}

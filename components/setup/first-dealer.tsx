@@ -13,6 +13,8 @@ export interface FirstDealerProps {
   /** The four players, in seat order. */
   players: readonly FirstDealerPlayer[];
   onChosen: (seat: Seat) => void;
+  /** True while a choice is being submitted; disables every interactive control to block double-taps. */
+  disabled?: boolean;
 }
 
 type Mode = 'choose' | 'app-roll' | 'physical';
@@ -34,7 +36,7 @@ const emptyInputMap = (): Partial<Record<Seat, string>> => ({});
  * The first-dealer step: roll in the app, enter a physical roll, or tap a seat directly
  * (PD-05). Both rolling methods re-roll only the players tied for the top roll.
  */
-export function FirstDealer({ players, onChosen }: FirstDealerProps) {
+export function FirstDealer({ players, onChosen, disabled = false }: FirstDealerProps) {
   const [mode, setMode] = useState<Mode>('choose');
   const [candidates, setCandidates] = useState<Seat[]>(players.map((p) => p.seat));
   const [lastRolls, setLastRolls] = useState<Partial<Record<Seat, number>>>(emptyRollMap());
@@ -44,6 +46,12 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
   const nameOf = (seat: Seat): string =>
     players.find((p) => p.seat === seat)?.name ?? `Seat ${seat + 1}`;
 
+  /** Reports the chosen seat, unless a submission is already in flight (guards double-taps). */
+  function chooseSeat(seat: Seat): void {
+    if (disabled) return;
+    onChosen(seat);
+  }
+
   function settleRound(rolls: number[]): void {
     const winners = nextCandidates(candidates, rolls);
     const rollMap: Partial<Record<Seat, number>> = { ...lastRolls };
@@ -52,7 +60,7 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
     });
     setLastRolls(rollMap);
     if (winners.length === 1) {
-      onChosen(winners[0]!);
+      chooseSeat(winners[0]!);
       return;
     }
     setCandidates(winners);
@@ -60,11 +68,13 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
   }
 
   function rollInApp(): void {
+    if (disabled) return;
     const rolls = candidates.map(() => rollDie());
     settleRound(rolls);
   }
 
   function submitPhysical(): void {
+    if (disabled) return;
     const rolls = candidates.map((seat) => Number(physicalInputs[seat]));
     if (rolls.some((r) => !Number.isInteger(r) || r < 1 || r > 6)) return;
     settleRound(rolls);
@@ -81,14 +91,16 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
           <button
             type="button"
             onClick={() => setMode('app-roll')}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium"
+            disabled={disabled}
+            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
           >
             Roll in the app
           </button>
           <button
             type="button"
             onClick={() => setMode('physical')}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium"
+            disabled={disabled}
+            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
           >
             Enter a physical roll
           </button>
@@ -98,8 +110,9 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
               <button
                 key={p.seat}
                 type="button"
-                onClick={() => onChosen(p.seat)}
-                className="min-h-12 rounded border border-neutral-400 px-4 text-left font-medium"
+                onClick={() => chooseSeat(p.seat)}
+                disabled={disabled}
+                className="min-h-12 rounded border border-neutral-400 px-4 text-left font-medium disabled:opacity-50"
               >
                 {p.name}
               </button>
@@ -117,7 +130,8 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
           <button
             type="button"
             onClick={rollInApp}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium"
+            disabled={disabled}
+            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
           >
             Roll dice
           </button>
@@ -151,14 +165,16 @@ export function FirstDealer({ players, onChosen }: FirstDealerProps) {
                 onChange={(event) =>
                   setPhysicalInputs((prev) => ({ ...prev, [seat]: event.target.value }))
                 }
-                className="min-h-12 w-20 rounded border border-neutral-400 px-3"
+                disabled={disabled}
+                className="min-h-12 w-20 rounded border border-neutral-400 px-3 disabled:opacity-50"
               />
             </div>
           ))}
           <button
             type="button"
             onClick={submitPhysical}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium"
+            disabled={disabled}
+            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
           >
             Submit rolls
           </button>
