@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TableView } from '@/components/table/table-view';
 import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
@@ -11,6 +12,7 @@ export interface GameClientProps {
 
 /** Client shell for the table screen: loads the game's events on mount (ADR-02). */
 export function GameClient({ gameId }: GameClientProps) {
+  const router = useRouter();
   const loadGame = useGameStore((s) => s.loadGame);
   const error = useGameStore((s) => s.error);
   const playerIds = useGameStore((s) => s.state.playerIds);
@@ -65,7 +67,7 @@ export function GameClient({ gameId }: GameClientProps) {
 
   return (
     <main className="min-h-dvh">
-      <TableView playerNames={playerNames} />
+      <TableView playerNames={playerNames} onHandOver={() => router.push(`/game/${gameId}/hand`)} />
     </main>
   );
 }

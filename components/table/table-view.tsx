@@ -14,23 +14,26 @@ const ORIENTATIONS = [0, 90, 180, 270] as const;
 export interface TableViewProps {
   /** Display name for each seated player, keyed by player id. Falls back to "Player N" when missing. */
   playerNames?: Record<string, string>;
+  /** Invoked when "Hand over" is tapped; the caller navigates into the hand-over flow. */
+  onHandOver?: () => void;
 }
 
 /**
  * The table screen: four seats, prevailing wind and hand counter, a rotate
  * control so the phone can face any seat (PD-06), hand-over/end-now buttons
- * (placeholders wired by Tasks 10 and 11) and the dice panel (PD-07).
+ * and the dice panel (PD-07). "Hand over" delegates to `onHandOver` (wired by
+ * the page to navigate into `/game/[gameId]/hand`, Task 10); "End now" is
+ * still a placeholder for Task 11.
  */
-export function TableView({ playerNames = {} }: TableViewProps) {
+export function TableView({ playerNames = {}, onHandOver }: TableViewProps) {
   const state = useGameStore((s) => s.state);
   const [orientationIndex, setOrientationIndex] = useState(0);
   const orientation = ORIENTATIONS[orientationIndex % ORIENTATIONS.length] ?? 0;
 
   const rotate = () => setOrientationIndex((i) => (i + 1) % ORIENTATIONS.length);
 
-  // TODO(Task 10): replace with navigation into the real hand-over flow (winner/discarder/fan entry).
   const handleHandOver = () => {
-    // Placeholder until Task 10 wires the hand-over flow.
+    onHandOver?.();
   };
 
   // TODO(Task 11): replace with a confirmation step that calls `endGame('manual')`.
