@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { exportBackup, importBackup } from '@/lib/db';
+import { MAX_BACKUP_BYTES, exportBackup, importBackup } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 
 function readFileText(file: File): Promise<string> {
@@ -51,9 +51,18 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
     if (!file) return;
     setMessage(null);
     setError(null);
+    // Check the size before reading, so an oversize file is never loaded into memory.
+    if (file.size > MAX_BACKUP_BYTES) {
+      setError(`Backup file is too large (${file.size} bytes, max ${MAX_BACKUP_BYTES})`);
+      return;
+    }
     try {
       const counts = await importBackup(await readFileText(file));
-      setMessage(`Imported ${counts.games} games and ${counts.events} events.`);
+      const skipped =
+        counts.skippedGames > 0 || counts.skippedEvents > 0
+          ? ` (skipped ${counts.skippedGames} games and ${counts.skippedEvents} events already here)`
+          : '';
+      setMessage(`Imported ${counts.games} games and ${counts.events} events${skipped}.`);
       onImported?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
