@@ -16,13 +16,18 @@ export function UpdatePrompt() {
   const pathname = usePathname();
   const [waiting, setWaiting] = useState(false);
   const serwist = useRef<Serwist | null>(null);
+  const accepted = useRef(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;
     const instance = new Serwist('/sw.js', { scope: '/', type: 'classic' });
     serwist.current = instance;
     instance.addEventListener('waiting', () => setWaiting(true));
-    instance.addEventListener('controlling', () => window.location.reload());
+    // Only reload for an update this tab accepted; first install and other tabs'
+    // updates also fire `controlling` (clientsClaim) and must not interrupt a hand.
+    instance.addEventListener('controlling', () => {
+      if (accepted.current) window.location.reload();
+    });
     void instance.register().catch(() => undefined);
   }, []);
 
@@ -38,7 +43,10 @@ export function UpdatePrompt() {
         type="button"
         variant="secondary"
         className="h-12 px-4 text-base"
-        onClick={() => serwist.current?.messageSkipWaiting()}
+        onClick={() => {
+          accepted.current = true;
+          serwist.current?.messageSkipWaiting();
+        }}
       >
         Update now
       </Button>

@@ -1,4 +1,5 @@
 // Regenerate the PWA icon set: `node scripts/generate-icons.mjs`.
+// The 中 glyph is rendered from a system CJK font, so one must be installed.
 import { mkdir, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 

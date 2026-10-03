@@ -76,7 +76,19 @@ describe('UpdatePrompt', () => {
     expect(sw.messageSkipWaiting).toHaveBeenCalledTimes(1);
   });
 
-  it('reloads the page once the new worker takes control', () => {
+  it('reloads once the new worker takes control after accept', () => {
+    const reload = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ reload } as unknown as Location);
+    render(<UpdatePrompt />);
+    emitWaiting();
+    fireEvent.click(screen.getByRole('button', { name: /update/i }));
+    act(() => {
+      sw.listeners.get('controlling')?.();
+    });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reload on controlling without a prior accept', () => {
     const reload = vi.fn();
     vi.spyOn(window, 'location', 'get').mockReturnValue({ reload } as unknown as Location);
     render(<UpdatePrompt />);
@@ -84,6 +96,6 @@ describe('UpdatePrompt', () => {
     act(() => {
       sw.listeners.get('controlling')?.();
     });
-    expect(reload).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
   });
 });
