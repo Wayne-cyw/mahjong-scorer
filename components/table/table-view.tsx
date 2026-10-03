@@ -41,6 +41,7 @@ export function TableView({
   const state = useGameStore((s) => s.state);
   const endGame = useGameStore((s) => s.endGame);
   const overrideState = useGameStore((s) => s.overrideState);
+  const storeError = useGameStore((s) => s.error);
   const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -56,7 +57,8 @@ export function TableView({
   const finish = async (reason: 'completed' | 'manual'): Promise<void> => {
     setActionError(null);
     try {
-      await endGame(reason);
+      // A refusal resolves false and sets the store's error, shown below.
+      if (!(await endGame(reason))) return;
       setConfirmingEnd(false);
       onGameEnded?.();
     } catch (error) {
@@ -67,7 +69,7 @@ export function TableView({
   const applyOverride = async (values: OverrideValues): Promise<void> => {
     setActionError(null);
     try {
-      await overrideState(values);
+      if (!(await overrideState(values))) return;
       setOverriding(false);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : String(error));
@@ -82,6 +84,10 @@ export function TableView({
   const names = seatNames(state.seatOf, playerNames);
   const { round, hand, repeat } = handLabel(state);
   const roundLabel = WIND_LABEL[round];
+  const inProgress = state.status === 'playing';
+  // Action failures and refusals (which set the store's error) show inline:
+  // the table and its controls stay usable.
+  const shownError = actionError ?? storeError;
 
   return (
     <div
@@ -126,9 +132,11 @@ export function TableView({
       </div>
 
       <div className="flex gap-3">
-        <Button type="button" onClick={handleHandOver} className="h-12 flex-1 px-4 text-base">
-          Hand over
-        </Button>
+        {inProgress && (
+          <Button type="button" onClick={handleHandOver} className="h-12 flex-1 px-4 text-base">
+            Hand over
+          </Button>
+        )}
         <Button
           type="button"
           variant="destructive"
@@ -204,13 +212,13 @@ export function TableView({
         />
       )}
 
-      {actionError && (
+      {shownError && (
         <p role="alert" className="text-red-700">
-          {actionError}
+          {shownError}
         </p>
       )}
 
-      <DicePanel />
+      {inProgress && <DicePanel />}
     </div>
   );
 }

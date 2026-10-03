@@ -21,10 +21,12 @@ const baseState: GameState = {
   dealerRepeat: 1,
 };
 
-function mockStoreState(state: GameState): void {
+function mockStoreState(state: GameState, extra: Partial<GameStoreState> = {}): void {
   const storeValue = {
     state,
+    error: null,
     rollDice: vi.fn(),
+    ...extra,
   } as unknown as GameStoreState;
   vi.mocked(useGameStore).mockImplementation(
     (selector: (state: GameStoreState) => unknown) => selector(storeValue) as never,
@@ -92,5 +94,32 @@ describe('TableView', () => {
     render(<TableView playerNames={{}} />);
     expect(screen.getByRole('button', { name: /hand over/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /end now/i })).toBeInTheDocument();
+  });
+
+  it('hides Hand over and the dice panel once the game is no longer in progress', () => {
+    mockStoreState({ ...baseState, status: 'complete' });
+    render(<TableView playerNames={{}} />);
+    expect(screen.queryByRole('button', { name: /hand over/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /roll dice/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /end game/i })).toBeInTheDocument();
+  });
+
+  it('shows Hand over and the dice panel while the game is in progress', () => {
+    render(<TableView playerNames={{}} />);
+    expect(screen.getByRole('button', { name: /hand over/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /roll dice/i })).toBeInTheDocument();
+  });
+
+  it('shows a refused action inline and does not call onGameEnded', async () => {
+    const onGameEnded = vi.fn();
+    const endGame = vi.fn().mockResolvedValue(false);
+    mockStoreState({ ...baseState, status: 'complete' }, { endGame, error: 'No game loaded' });
+    render(<TableView playerNames={{}} onGameEnded={onGameEnded} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /end game/i }));
+
+    await vi.waitFor(() => expect(endGame).toHaveBeenCalledWith('completed'));
+    expect(onGameEnded).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('No game loaded');
   });
 });

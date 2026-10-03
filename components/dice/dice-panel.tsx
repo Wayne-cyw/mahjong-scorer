@@ -23,9 +23,19 @@ export function DicePanel() {
   const [physicalTotal, setPhysicalTotal] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  /** Runs a roll, surfacing a refusal or a failed write here instead of as an unhandled rejection. */
+  const roll = async (args?: { physicalTotal: number }): Promise<void> => {
+    try {
+      const appended = await (args ? rollDice(args) : rollDice());
+      if (appended === false) setError('The game is not in progress, so the dice were not rolled.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const handleVirtualRoll = () => {
     setError(null);
-    void rollDice();
+    void roll();
   };
 
   const handlePhysicalSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -36,7 +46,7 @@ export function DicePanel() {
       return;
     }
     setError(null);
-    void rollDice({ physicalTotal: total });
+    void roll({ physicalTotal: total });
     setPhysicalTotal('');
   };
 
