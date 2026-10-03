@@ -19,7 +19,13 @@ import {
   setGameStatus,
 } from '@/lib/db';
 
-/** The one place in the app that calls `appendEvent`: every write goes through this store. */
+/**
+ * The one place in the app that calls `appendEvent`: every write goes through this store.
+ *
+ * Every write action resolves `true` when its event was appended and `false`
+ * when it was refused (no event appended, `error` set). It rejects only when
+ * the write itself failed (e.g. IndexedDB error), also setting `error`.
+ */
 export interface GameStoreState {
   gameId: string | null;
   events: StoredEvent[];
@@ -32,9 +38,9 @@ export interface GameStoreState {
     presetId: string;
     startingPoints?: number;
   }) => Promise<string>;
-  assignSeats: (seatOf: Record<string, Seat>) => Promise<void>;
-  chooseFirstDealer: (seat: Seat, dice?: [number, number, number]) => Promise<void>;
-  rollDice: (args?: { physicalTotal?: number }) => Promise<void>;
+  assignSeats: (seatOf: Record<string, Seat>) => Promise<boolean>;
+  chooseFirstDealer: (seat: Seat, dice?: [number, number, number]) => Promise<boolean>;
+  rollDice: (args?: { physicalTotal?: number }) => Promise<boolean>;
   recordWin: (args: {
     winner: Seat;
     discarder?: Seat;
@@ -42,56 +48,82 @@ export interface GameStoreState {
     hand?: WinningHand;
     breakdown?: FanLine[];
     engineVersion?: string;
-  }) => Promise<void>;
-  recordDraw: () => Promise<void>;
-  voidHand: (targetId: string) => Promise<void>;
-  correctHand: (targetId: string, replacement: HandWonPayload) => Promise<void>;
-  overrideState: (args: { dealer: Seat; prevailing: Wind; dealerRepeat: number }) => Promise<void>;
-  endGame: (reason: 'completed' | 'manual') => Promise<void>;
+  }) => Promise<boolean>;
+  recordDraw: () => Promise<boolean>;
+  voidHand: (targetId: string) => Promise<boolean>;
+  correctHand: (targetId: string, replacement: HandWonPayload) => Promise<boolean>;
+  overrideState: (args: {
+    dealer: Seat;
+    prevailing: Wind;
+    dealerRepeat: number;
+  }) => Promise<boolean>;
+  endGame: (reason: 'completed' | 'manual') => Promise<boolean>;
   loadGame: (gameId: string) => Promise<void>;
 }
 
 const DEFAULT_STARTING_POINTS = 2000;
 
+/** How many times a write reloads and retries after losing the seq race to another writer. */
+const MAX_APPEND_ATTEMPTS = 3;
+
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 /**
- * Appends `payload` to `gameId`'s log, retrying once by reloading the log and
- * re-appending if another writer won the race for the next `seq` (ADR-55).
- * Returns the full, up-to-date event list for the game.
+ * An action's guard and payload builder, run against a game's current state:
+ * returns the event to append, or `{ refuse }` with the reason it may not be.
+ * It is re-run against a freshly reloaded state if another writer appended first.
  */
-async function appendAndSync(
-  gameId: string,
-  currentEvents: StoredEvent[],
-  payload: GameEvent,
-): Promise<StoredEvent[]> {
-  try {
-    const event = await appendEvent(gameId, payload);
-    return [...currentEvents, event];
-  } catch (error) {
-    if (!(error instanceof DuplicateSeqError)) throw error;
-    const reloaded = await loadEvents(gameId);
-    const event = await appendEvent(gameId, payload);
-    return [...reloaded, event];
-  }
-}
+type Plan = (state: GameState) => { payload: GameEvent } | { refuse: string };
+
+const nextSeqOf = (events: readonly StoredEvent[]): number => {
+  const last = events.at(-1);
+  return last ? last.seq + 1 : 0;
+};
+
+const derive = (events: StoredEvent[]) => ({
+  events,
+  state: replay(events),
+  history: deriveHistory(events),
+});
 
 export const useGameStore = create<GameStoreState>()((set, get) => {
-  /** Build the payload, append, replay, and set — the pattern every write action follows (ADR-07). */
-  const commit = async (gameId: string, payload: GameEvent): Promise<void> => {
+  /** Marks a call as refused: no event is appended, `error` is set, and the promise resolves `false`. */
+  const refuse = (message: string): false => {
+    set({ loading: false, error: message });
+    return false;
+  };
+
+  /**
+   * Plan, append, replay, and set: the pattern every write action follows (ADR-07).
+   * The append carries the next `seq` this store expects, so a stale view (another
+   * tab appended since this store loaded) is detected instead of silently appended
+   * on top of. On that conflict the log is reloaded and replayed, the action's guard
+   * is re-run against the fresh state, and the append is retried or refused (ADR-55).
+   */
+  const commit = async (plan: Plan): Promise<boolean> => {
+    const { gameId } = get();
+    if (gameId === null) return refuse('No game loaded');
     const previousStatus = get().state.status;
     set({ loading: true, error: null });
     try {
-      const events = await appendAndSync(gameId, get().events, payload);
-      const state = replay(events);
-      set({
-        events,
-        state,
-        history: deriveHistory(events),
-        loading: false,
-        error: null,
-      });
+      let currentEvents = get().events;
+      let currentState = get().state;
+      for (let attempt = 1; ; attempt++) {
+        const planned = plan(currentState);
+        if ('refuse' in planned) return refuse(planned.refuse);
+        try {
+          const event = await appendEvent(gameId, planned.payload, nextSeqOf(currentEvents));
+          set({ ...derive([...currentEvents, event]), loading: false, error: null });
+          break;
+        } catch (error) {
+          if (!(error instanceof DuplicateSeqError) || attempt >= MAX_APPEND_ATTEMPTS) throw error;
+          const fresh = derive(await loadEvents(gameId));
+          set(fresh);
+          currentEvents = fresh.events;
+          currentState = fresh.state;
+        }
+      }
     } catch (error) {
       set({ loading: false, error: errorMessage(error) });
       throw error;
@@ -109,12 +141,11 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
         console.error('Failed to sync games row status', error);
       }
     }
+    return true;
   };
 
-  /** Marks a call as refused: no event is appended, `error` is set, and the promise resolves. */
-  const refuse = (message: string): void => {
-    set({ error: message });
-  };
+  const NOT_IN_PROGRESS = { refuse: 'Game is not in progress' } as const;
+  const LEFT_SETUP = { refuse: 'Game has already left setup' } as const;
 
   return {
     gameId: null,
@@ -136,15 +167,8 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
           ruleset,
           startingPoints: startingPoints ?? DEFAULT_STARTING_POINTS,
         };
-        const events = await appendAndSync(gameId, [], payload);
-        set({
-          gameId,
-          events,
-          state: replay(events),
-          history: deriveHistory(events),
-          loading: false,
-          error: null,
-        });
+        const event = await appendEvent(gameId, payload, 0);
+        set({ gameId, ...derive([event]), loading: false, error: null });
         return gameId;
       } catch (error) {
         set({ loading: false, error: errorMessage(error) });
@@ -152,96 +176,75 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
       }
     },
 
-    assignSeats: async (seatOf) => {
-      const { gameId, state } = get();
-      if (gameId === null) return refuse('No game loaded');
-      if (state.status !== 'setup') return refuse('Game has already left setup');
-      await commit(gameId, { type: 'SeatsAssigned', seatOf });
-    },
+    assignSeats: (seatOf) =>
+      commit((state) =>
+        state.status !== 'setup' ? LEFT_SETUP : { payload: { type: 'SeatsAssigned', seatOf } },
+      ),
 
-    chooseFirstDealer: async (seat, dice) => {
-      const { gameId, state } = get();
-      if (gameId === null) return refuse('No game loaded');
-      if (state.status !== 'setup') return refuse('Game has already left setup');
-      await commit(gameId, { type: 'FirstDealerChosen', seat, dice });
-    },
+    chooseFirstDealer: (seat, dice) =>
+      commit((state) =>
+        state.status !== 'setup'
+          ? LEFT_SETUP
+          : { payload: { type: 'FirstDealerChosen', seat, dice } },
+      ),
 
-    rollDice: async (args) => {
-      const { gameId, state } = get();
-      if (gameId === null || state.status !== 'playing') {
-        return refuse('Game is not in progress');
-      }
-      const physicalTotal = args?.physicalTotal;
-      let payload: GameEvent;
-      if (physicalTotal === undefined) {
+    rollDice: (args) =>
+      commit((state) => {
+        if (state.status !== 'playing') return NOT_IN_PROGRESS;
+        const physicalTotal = args?.physicalTotal;
+        if (physicalTotal !== undefined) {
+          return { payload: { type: 'DiceRolled', total: physicalTotal, source: 'physical' } };
+        }
         const dice = rollThreeDice();
-        payload = {
-          type: 'DiceRolled',
-          total: dice[0] + dice[1] + dice[2],
-          dice,
-          source: 'virtual',
+        return {
+          payload: {
+            type: 'DiceRolled',
+            total: dice[0] + dice[1] + dice[2],
+            dice,
+            source: 'virtual',
+          },
         };
-      } else {
-        payload = { type: 'DiceRolled', total: physicalTotal, source: 'physical' };
-      }
-      await commit(gameId, payload);
-    },
+      }),
 
-    recordWin: async ({ winner, discarder, fan, hand, breakdown, engineVersion }) => {
-      const { gameId, state } = get();
-      if (gameId === null || state.status !== 'playing') {
-        return refuse('Game is not in progress');
-      }
-      const ruleset = state.ruleset;
-      if (ruleset === null) return refuse('No ruleset for this game');
-      const manual = hand === undefined;
-      const basePoints = basePointsFor(fan, ruleset);
-      const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
-      const payload: GameEvent = {
-        type: 'HandWon',
-        winner,
-        discarder,
-        hand,
-        fan,
-        breakdown: breakdown ?? [],
-        payments,
-        engineVersion: manual ? MANUAL_ENGINE_VERSION : (engineVersion ?? MANUAL_ENGINE_VERSION),
-        manual,
-      };
-      await commit(gameId, payload);
-    },
+    recordWin: ({ winner, discarder, fan, hand, breakdown, engineVersion }) =>
+      commit((state) => {
+        if (state.status !== 'playing') return NOT_IN_PROGRESS;
+        const ruleset = state.ruleset;
+        if (ruleset === null) return { refuse: 'No ruleset for this game' };
+        const manual = hand === undefined;
+        const basePoints = basePointsFor(fan, ruleset);
+        const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
+        return {
+          payload: {
+            type: 'HandWon',
+            winner,
+            discarder,
+            hand,
+            fan,
+            breakdown: breakdown ?? [],
+            payments,
+            engineVersion: manual
+              ? MANUAL_ENGINE_VERSION
+              : (engineVersion ?? MANUAL_ENGINE_VERSION),
+            manual,
+          },
+        };
+      }),
 
-    recordDraw: async () => {
-      const { gameId, state } = get();
-      if (gameId === null || state.status !== 'playing') {
-        return refuse('Game is not in progress');
-      }
-      await commit(gameId, { type: 'HandDrawn' });
-    },
+    recordDraw: () =>
+      commit((state) =>
+        state.status !== 'playing' ? NOT_IN_PROGRESS : { payload: { type: 'HandDrawn' } },
+      ),
 
-    voidHand: async (targetId) => {
-      const { gameId } = get();
-      if (gameId === null) return refuse('No game loaded');
-      await commit(gameId, { type: 'HandVoided', targetId });
-    },
+    voidHand: (targetId) => commit(() => ({ payload: { type: 'HandVoided', targetId } })),
 
-    correctHand: async (targetId, replacement) => {
-      const { gameId } = get();
-      if (gameId === null) return refuse('No game loaded');
-      await commit(gameId, { type: 'HandCorrected', targetId, replacement });
-    },
+    correctHand: (targetId, replacement) =>
+      commit(() => ({ payload: { type: 'HandCorrected', targetId, replacement } })),
 
-    overrideState: async ({ dealer, prevailing, dealerRepeat }) => {
-      const { gameId } = get();
-      if (gameId === null) return refuse('No game loaded');
-      await commit(gameId, { type: 'StateOverridden', dealer, prevailing, dealerRepeat });
-    },
+    overrideState: ({ dealer, prevailing, dealerRepeat }) =>
+      commit(() => ({ payload: { type: 'StateOverridden', dealer, prevailing, dealerRepeat } })),
 
-    endGame: async (reason) => {
-      const { gameId } = get();
-      if (gameId === null) return refuse('No game loaded');
-      await commit(gameId, { type: 'GameEnded', reason });
-    },
+    endGame: (reason) => commit(() => ({ payload: { type: 'GameEnded', reason } })),
 
     loadGame: async (gameId) => {
       set({ loading: true, error: null });

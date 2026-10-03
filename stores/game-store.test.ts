@@ -1,9 +1,8 @@
-import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dbModule from '@/lib/db';
-import { getDb, loadEvents } from '@/lib/db';
+import { appendEvent, getDb, loadEvents } from '@/lib/db';
 import { basePointsFor, getPreset, settle } from '@/lib/scoring';
-import { initialState, nextSeat } from '@/lib/game';
+import { deriveHistory, initialState, nextSeat, replay } from '@/lib/game';
 import type { Seat } from '@/lib/tiles';
 import { useGameStore } from './game-store';
 
@@ -333,7 +332,7 @@ describe('setGameStatus failure isolation', () => {
 
     // chooseFirstDealer moves status setup -> playing, which triggers the
     // (now-failing) setGameStatus call inside commit().
-    await expect(useGameStore.getState().chooseFirstDealer(0)).resolves.toBeUndefined();
+    await expect(useGameStore.getState().chooseFirstDealer(0)).resolves.toBe(true);
 
     // The event was durably appended and the derived state correctly advanced,
     // despite the games-row sync failing.
@@ -353,29 +352,72 @@ describe('setGameStatus failure isolation', () => {
   });
 });
 
-describe('duplicate seq retry', () => {
+describe('a second writer (stale tab) appending to the same game', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('reloads events and retries once when appendEvent loses the seq race', async () => {
-    await setupPlayingGame();
-    const eventsBefore = useGameStore.getState().events.length;
-
-    const db = getDb();
-    vi.spyOn(db.events, 'add').mockRejectedValueOnce(
-      new Dexie.ConstraintError('Key already exists in the object store.'),
-    );
-
-    await useGameStore.getState().recordDraw();
-
-    expect(useGameStore.getState().error).toBeNull();
-    expect(useGameStore.getState().events).toHaveLength(eventsBefore + 1);
-    expect(useGameStore.getState().state.handsPlayed).toBe(1);
-
-    const gameId = useGameStore.getState().gameId!;
+  /** The store's in-memory view must always equal a fresh replay of the DB log. */
+  async function expectStoreMatchesDb(gameId: string): Promise<void> {
     const stored = await loadEvents(gameId);
-    expect(stored).toHaveLength(eventsBefore + 1);
+    const { events, state, history } = useGameStore.getState();
+    expect(events).toEqual(stored);
+    expect(state).toEqual(replay(stored));
+    expect(history).toEqual(deriveHistory(stored));
+  }
+
+  it('reloads, re-checks, and lands at the correct next seq when another tab appended first', async () => {
+    const gameId = await setupPlayingGame();
+    const before = useGameStore.getState().events.length;
+
+    // Tab A records a win directly in the DB; this store (tab B) has not seen it.
+    const payments = settle({
+      winner: 1,
+      discarder: 0,
+      basePoints: basePointsFor(ruleset.minFan, ruleset),
+      model: ruleset.payment,
+    });
+    await appendEvent(gameId, {
+      type: 'HandWon',
+      winner: 1,
+      discarder: 0,
+      fan: ruleset.minFan,
+      breakdown: [],
+      payments,
+      engineVersion: 'manual',
+      manual: true,
+    });
+
+    await expect(useGameStore.getState().recordDraw()).resolves.toBe(true);
+
+    const stored = await loadEvents(gameId);
+    expect(stored).toHaveLength(before + 2);
+    expect(stored.map((e) => e.seq)).toEqual(stored.map((_, i) => i));
+    expect(stored.at(-1)?.payload.type).toBe('HandDrawn');
+    expect(useGameStore.getState().error).toBeNull();
+    // Tab A's win is reflected: seat 1 won, so seat 1 dealt the drawn hand.
+    expect(useGameStore.getState().state.handsPlayed).toBe(2);
+    await expectStoreMatchesDb(gameId);
+  });
+
+  it('refuses (appends nothing) when the fresh log shows the game is no longer in progress', async () => {
+    const gameId = await setupPlayingGame();
+    const before = useGameStore.getState().events.length;
+
+    // Tab A ends the game; this store still believes it is playing.
+    await appendEvent(gameId, { type: 'GameEnded', reason: 'manual' });
+    expect(useGameStore.getState().state.status).toBe('playing');
+
+    await expect(
+      useGameStore.getState().recordWin({ winner: 0, discarder: 1, fan: ruleset.minFan }),
+    ).resolves.toBe(false);
+
+    const stored = await loadEvents(gameId);
+    expect(stored).toHaveLength(before + 1);
+    expect(stored.some((e) => e.payload.type === 'HandWon')).toBe(false);
+    expect(useGameStore.getState().error).toMatch(/not in progress/i);
+    expect(useGameStore.getState().state.status).toBe('ended');
+    await expectStoreMatchesDb(gameId);
   });
 
   it('propagates a non-duplicate error from appendEvent unchanged', async () => {
@@ -386,5 +428,21 @@ describe('duplicate seq retry', () => {
 
     await expect(useGameStore.getState().recordDraw()).rejects.toThrow(boom);
     expect(useGameStore.getState().error).toBe('boom');
+  });
+});
+
+describe('action results', () => {
+  it('resolves true when an event is appended and false when the action is refused', async () => {
+    await setupPlayingGame();
+    await expect(useGameStore.getState().rollDice()).resolves.toBe(true);
+    await expect(useGameStore.getState().recordDraw()).resolves.toBe(true);
+    await expect(useGameStore.getState().assignSeats({})).resolves.toBe(false);
+    await playToComplete();
+    await expect(useGameStore.getState().rollDice()).resolves.toBe(false);
+    await expect(useGameStore.getState().recordDraw()).resolves.toBe(false);
+    await expect(
+      useGameStore.getState().recordWin({ winner: 0, discarder: 1, fan: ruleset.minFan }),
+    ).resolves.toBe(false);
+    await expect(useGameStore.getState().endGame('completed')).resolves.toBe(true);
   });
 });
