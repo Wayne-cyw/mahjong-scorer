@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { GameRow } from '@/lib/db';
 import { listGames } from '@/lib/db';
+import { BackupPanel } from '@/components/settings/backup-panel';
 import { GameList } from '@/components/home/game-list';
 
 export default function HomePage() {
@@ -34,6 +35,7 @@ export default function HomePage() {
         New game
       </Link>
       {loading ? <p className="text-neutral-600">Loading games…</p> : <GameList games={games} />}
+      <BackupPanel />
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { InstallNudge } from '@/components/settings/install-nudge';
 import { TableView } from '@/components/table/table-view';
 import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
@@ -67,7 +68,13 @@ export function GameClient({ gameId }: GameClientProps) {
 
   return (
     <main className="min-h-dvh">
-      <TableView playerNames={playerNames} onHandOver={() => router.push(`/game/${gameId}/hand`)} />
+      <InstallNudge />
+      <TableView
+        playerNames={playerNames}
+        onHandOver={() => router.push(`/game/${gameId}/hand`)}
+        onHistory={() => router.push(`/game/${gameId}/history`)}
+        onGameEnded={() => router.push('/')}
+      />
     </main>
   );
 }
