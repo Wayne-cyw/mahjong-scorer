@@ -19,7 +19,14 @@ const windSchema: z.ZodType<Wind> = z.enum(WINDS as [Wind, ...Wind[]]);
 const dieSchema = z.number().int().min(1).max(6);
 const diceTripleSchema = z.tuple([dieSchema, dieSchema, dieSchema]);
 
-const paymentsSchema = z.tuple([z.number(), z.number(), z.number(), z.number()]);
+const paymentSchema = z.number().int();
+
+/** Per-seat point changes: whole points that sum to exactly 0 (as `settle` guarantees). */
+const paymentsSchema = z
+  .tuple([paymentSchema, paymentSchema, paymentSchema, paymentSchema])
+  .refine((payments) => payments.reduce((sum, amount) => sum + amount, 0) === 0, {
+    message: 'Payments must sum to 0',
+  });
 
 const meldSchema: z.ZodType<Meld> = z.object({
   kind: z.enum(['chow', 'pung', 'kong']),

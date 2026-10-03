@@ -93,6 +93,45 @@ describe('gameEventSchema', () => {
     expect(gameEventSchema.safeParse(bad).success).toBe(false);
   });
 
+  it('rejects HandWon payments that do not sum to zero', () => {
+    const bad = {
+      type: 'HandWon',
+      winner: 0,
+      fan: 3,
+      breakdown,
+      payments: [24, -8, -8, -7],
+      engineVersion: 'v1',
+    };
+    expect(gameEventSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('rejects HandWon payments that are not whole points', () => {
+    const bad = {
+      type: 'HandWon',
+      winner: 0,
+      fan: 3,
+      breakdown,
+      payments: [1.5, -0.5, -0.5, -0.5],
+      engineVersion: 'v1',
+    };
+    expect(gameEventSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('rejects a HandCorrected replacement whose payments do not sum to zero', () => {
+    const bad = {
+      type: 'HandCorrected',
+      targetId: 'evt-1',
+      replacement: {
+        winner: 1,
+        fan: 4,
+        breakdown,
+        payments: [-16, 48, -16, -15],
+        engineVersion: 'v1',
+      },
+    };
+    expect(gameEventSchema.safeParse(bad).success).toBe(false);
+  });
+
   it('rejects a seat value of 4', () => {
     const bad = { type: 'FirstDealerChosen', seat: 4 };
     expect(gameEventSchema.safeParse(bad).success).toBe(false);
