@@ -16,8 +16,9 @@ async function expectTable(
   page: Page,
   expected: { dealer: number; round: 'East' | 'South'; repeat: number },
 ): Promise<void> {
-  await expect(page.getByText(`${expected.round} round`)).toBeVisible();
-  await expect(page.getByText(`dealer repeat ${expected.repeat}`)).toBeVisible();
+  await expect(
+    page.getByText(new RegExp(`^${expected.round} round .*, dealer repeat ${expected.repeat}$`)),
+  ).toBeVisible();
   for (let seat = 0; seat < 4; seat++) {
     await expect(page.getByTestId(`seat-card-${seat}`)).toHaveAttribute(
       'data-dealer',
@@ -89,11 +90,9 @@ test('phase 1: full manual game with undo, override, reload and offline', async 
   // Undo the draw from history.
   await page.getByRole('button', { name: 'History' }).click();
   await expect(page.getByText('Draw (流局)')).toBeVisible();
-  await page.getByRole('button', { name: 'Undo' }).last().click();
-  await page
-    .getByRole('button', { name: /confirm|undo/i })
-    .last()
-    .click();
+  const drawRow = page.getByRole('listitem').filter({ hasText: 'Draw (流局)' });
+  await drawRow.getByRole('button', { name: 'Undo', exact: true }).click();
+  await drawRow.getByRole('button', { name: 'Confirm undo', exact: true }).click();
   await expect(page.getByText('Draw (流局)')).toHaveCount(0);
   await page.getByRole('button', { name: 'Back to table' }).click();
   await expectTable(page, { dealer: 1, round: 'East', repeat: 0 });
@@ -115,9 +114,16 @@ test('phase 1: full manual game with undo, override, reload and offline', async 
   // Playwright's WebKit does not route offline navigations through the service worker, so the
   // offline leg is exercised on Chromium only; WebKit still records the same hand online.
   const offline = browserName === 'chromium';
+  if (!offline) {
+    test.info().annotations.push({
+      type: 'offline-skipped',
+      description: 'WebKit does not route offline navigations through the service worker',
+    });
+  }
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   if (offline) await context.setOffline(true);
   await recordWin(page, 'Ann', 3, 'Dan');
   await expectTable(page, { dealer: 0, round: 'South', repeat: 0 });
@@ -128,5 +134,4 @@ test('phase 1: full manual game with undo, override, reload and offline', async 
   await page.reload();
   await expectTable(page, { dealer: 0, round: 'South', repeat: 0 });
   expect(await scores(page)).toEqual(finalScores);
-  if (offline) await context.setOffline(false);
 });

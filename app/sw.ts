@@ -26,6 +26,7 @@ const serwist = new Serwist({
   runtimeCaching: [
     // ADR-50: recognition is network-only, so a photo is never answered from cache.
     { matcher: ({ url }) => url.pathname === '/api/recognize', handler: new NetworkOnly() },
+    // Intentionally shadows defaultCache's pages-rsc entry (first matching rule wins).
     // Client navigations (RSC) are keyed without the router-state hash, so a table reloaded
     // while online can still open the hand screen offline.
     {
