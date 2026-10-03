@@ -9,7 +9,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'any',
     background_color: '#ffffff',
     theme_color: '#0f5132',
-    // TODO: add 192px, 512px and maskable icons (ADR, manifest section).
-    icons: [],
+    icons: [
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
   };
 }
