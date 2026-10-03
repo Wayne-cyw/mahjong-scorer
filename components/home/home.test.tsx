@@ -6,6 +6,7 @@ import HomePage from '@/app/page';
 import { GameList } from './game-list';
 
 vi.mock('@/lib/db', () => ({
+  MAX_BACKUP_BYTES: 5 * 1024 * 1024,
   listGames: vi.fn(),
   importBackup: vi.fn(),
   exportBackup: vi.fn(),
@@ -24,7 +25,12 @@ describe('HomePage', () => {
     render(<HomePage />);
     await screen.findByText(/no games yet/i);
 
-    vi.mocked(importBackup).mockResolvedValue({ games: 1, events: 5 });
+    vi.mocked(importBackup).mockResolvedValue({
+      games: 1,
+      events: 5,
+      skippedGames: 0,
+      skippedEvents: 0,
+    });
     vi.mocked(listGames).mockResolvedValue([
       { id: 'g9', createdAt: 1_700_000_000_000, status: 'playing', name: 'Imported game' },
     ]);

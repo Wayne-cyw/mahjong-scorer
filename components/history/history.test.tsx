@@ -14,7 +14,11 @@ import { BackupPanel } from '@/components/settings/backup-panel';
 import { TableView } from '@/components/table/table-view';
 
 vi.mock('@/stores/game-store', () => ({ useGameStore: vi.fn() }));
-vi.mock('@/lib/db', () => ({ exportBackup: vi.fn(), importBackup: vi.fn() }));
+vi.mock('@/lib/db', () => ({
+  MAX_BACKUP_BYTES: 5 * 1024 * 1024,
+  exportBackup: vi.fn(),
+  importBackup: vi.fn(),
+}));
 
 const ruleset = getPreset('hk-discarder-pays');
 
@@ -205,7 +209,12 @@ describe('BackupPanel', () => {
   });
 
   it('reports counts after a successful import', async () => {
-    vi.mocked(importBackup).mockResolvedValue({ games: 2, events: 40 });
+    vi.mocked(importBackup).mockResolvedValue({
+      games: 2,
+      events: 40,
+      skippedGames: 0,
+      skippedEvents: 0,
+    });
     const onImported = vi.fn();
     render(<BackupPanel onImported={onImported} />);
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });

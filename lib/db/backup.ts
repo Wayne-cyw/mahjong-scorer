@@ -3,7 +3,7 @@ import { storedEventSchema } from '@/lib/game';
 import { getDb, type GameRow, type PlayerRow } from './db';
 
 /** Backups over this size are rejected outright, before any JSON parsing (Review Focus 5). */
-const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
+export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
 
 const gameRowSchema: z.ZodType<GameRow> = z.object({
   id: z.string().min(1),
@@ -47,13 +47,25 @@ export async function exportBackup(): Promise<string> {
   return JSON.stringify(payload);
 }
 
+/** What an import wrote, and what it left alone because the key already existed locally. */
+export interface ImportResult {
+  games: number;
+  events: number;
+  skippedGames: number;
+  skippedEvents: number;
+}
+
 /**
  * Restores a backup written by `exportBackup`. Validates the whole file with
  * Zod (oversize, malformed JSON, unknown event `v`, or any other schema
- * mismatch) before touching the database, then writes everything in one
- * transaction so a failure never leaves a partial import (ADR-53, Review Focus 5).
+ * mismatch) before touching the database, then writes in one transaction so
+ * a failure never leaves a partial import (ADR-53, Review Focus 5).
+ *
+ * The import only ever adds: a game row or `[gameId+seq]` event that already
+ * exists locally is skipped, never overwritten, so restoring an older backup
+ * cannot roll a game's status back or rewrite its append-only log.
  */
-export async function importBackup(json: string): Promise<{ games: number; events: number }> {
+export async function importBackup(json: string): Promise<ImportResult> {
   const byteLength = new TextEncoder().encode(json).length;
   if (byteLength > MAX_BACKUP_BYTES) {
     throw new Error(`Backup file is too large (${byteLength} bytes, max ${MAX_BACKUP_BYTES})`);
@@ -73,11 +85,26 @@ export async function importBackup(json: string): Promise<{ games: number; event
   const payload = parsed.data;
 
   const db = getDb();
-  await db.transaction('rw', [db.games, db.events, db.players], async () => {
-    await db.games.bulkPut(payload.games);
-    await db.events.bulkPut(payload.events);
-    await db.players.bulkPut(payload.players);
-  });
+  return db.transaction('rw', [db.games, db.events, db.players], async () => {
+    const existingGames = await db.games.bulkGet(payload.games.map((game) => game.id));
+    const newGames = payload.games.filter((_, i) => existingGames[i] === undefined);
 
-  return { games: payload.games.length, events: payload.events.length };
+    const existingEvents = await db.events.bulkGet(
+      payload.events.map((event): [string, number] => [event.gameId, event.seq]),
+    );
+    const newEvents = payload.events.filter((_, i) => existingEvents[i] === undefined);
+
+    // bulkAdd (not bulkPut): a key clash, including one inside the backup itself,
+    // rejects and aborts the whole transaction rather than overwriting a row.
+    await db.games.bulkAdd(newGames);
+    await db.events.bulkAdd(newEvents);
+    await db.players.bulkPut(payload.players);
+
+    return {
+      games: newGames.length,
+      events: newEvents.length,
+      skippedGames: payload.games.length - newGames.length,
+      skippedEvents: payload.events.length - newEvents.length,
+    };
+  });
 }

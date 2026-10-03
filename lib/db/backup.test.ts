@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { GameEvent } from '@/lib/game';
 import { getDb } from './db';
+import { setGameStatus } from './repository';
 import {
   appendEvent,
   createGame,
@@ -42,7 +43,7 @@ describe('exportBackup / importBackup', () => {
     expect(await listGames()).toHaveLength(0);
 
     const result = await importBackup(json);
-    expect(result).toEqual({ games: 1, events: 2 });
+    expect(result).toEqual({ games: 1, events: 2, skippedGames: 0, skippedEvents: 0 });
 
     const games = await listGames();
     const events = await loadEvents(gameId);
@@ -116,6 +117,66 @@ describe('exportBackup / importBackup', () => {
     });
 
     await expect(importBackup(mixed)).rejects.toThrow();
+    expect(await listGames()).toHaveLength(0);
+    expect(await loadEvents(gameId)).toHaveLength(0);
+  });
+
+  it('never overwrites an existing game row or event: importing an older backup is append-only', async () => {
+    const gameId = await createGame();
+    await setGameStatus(gameId, 'playing');
+    await appendEvent(gameId, handDrawn);
+    const olderBackup = await exportBackup();
+
+    // The game moves on locally after the backup was taken.
+    await appendEvent(gameId, gameEnded);
+    await setGameStatus(gameId, 'ended');
+    const before = await loadEvents(gameId);
+
+    // Tamper with the old backup's copy of seq 0 to prove it is not written over.
+    const parsed = JSON.parse(olderBackup);
+    parsed.games[0].status = 'setup';
+    parsed.events[0].id = 'tampered';
+    const result = await importBackup(JSON.stringify(parsed));
+
+    expect(result).toEqual({ games: 0, events: 0, skippedGames: 1, skippedEvents: 1 });
+    expect((await listGames())[0]?.status).toBe('ended');
+    expect(await loadEvents(gameId)).toEqual(before);
+  });
+
+  it('adds only the missing events and games, reporting what it skipped', async () => {
+    const gameId = await createGame();
+    await appendEvent(gameId, handDrawn);
+    await appendEvent(gameId, gameEnded);
+    const otherId = await createGame();
+    await appendEvent(otherId, handDrawn);
+    const fullBackup = await exportBackup();
+
+    // Locally, the second game and the first game's last event are gone.
+    const db = getDb();
+    await db.events.delete([gameId, 1]);
+    await db.events.where('gameId').equals(otherId).delete();
+    await db.games.delete(otherId);
+
+    const result = await importBackup(fullBackup);
+    expect(result).toEqual({ games: 1, events: 2, skippedGames: 1, skippedEvents: 1 });
+    expect((await loadEvents(gameId)).map((e) => e.seq)).toEqual([0, 1]);
+    expect(await loadEvents(otherId)).toHaveLength(1);
+  });
+
+  it('stays all-or-nothing when a backup holds the same event key twice', async () => {
+    const gameId = await createGame();
+    const good = await appendEvent(gameId, handDrawn);
+    await clearAllTables();
+
+    const dup = JSON.stringify({
+      version: 1,
+      exportedAt: Date.now(),
+      games: [{ id: gameId, createdAt: Date.now(), status: 'setup' }],
+      events: [good, { ...good, id: 'other' }],
+      players: [],
+    });
+
+    await expect(importBackup(dup)).rejects.toThrow();
     expect(await listGames()).toHaveLength(0);
     expect(await loadEvents(gameId)).toHaveLength(0);
   });

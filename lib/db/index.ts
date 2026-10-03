@@ -18,4 +18,4 @@ export {
   setGameStatus,
   setSetting,
 } from './repository';
-export { exportBackup, importBackup } from './backup';
+export { MAX_BACKUP_BYTES, exportBackup, importBackup, type ImportResult } from './backup';
