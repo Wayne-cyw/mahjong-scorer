@@ -14,15 +14,28 @@ export async function createGame(id?: string): Promise<string> {
 
 /**
  * Appends one event to a game's log in a single IndexedDB transaction: reads
- * the highest existing `seq` for the game and writes `seq + 1`. If another
- * writer (e.g. a second tab) wins the race for the same `[gameId+seq]` slot,
- * this throws `DuplicateSeqError` instead of corrupting the log (ADR-54, ADR-55).
+ * the highest existing `seq` for the game and writes `seq + 1` (ADR-54).
+ *
+ * Pass `expectedSeq` (the caller's last known `seq + 1`) for optimistic
+ * concurrency: if another writer (e.g. a second tab) has appended since the
+ * caller last loaded the log, the DB's next `seq` differs and this throws
+ * `DuplicateSeqError` without writing, so the caller can reload, re-check its
+ * guards against the fresh state, and retry or refuse (ADR-55). The store
+ * always passes it. A `[gameId+seq]` ConstraintError is also mapped to
+ * `DuplicateSeqError` as a last line of defence.
  */
-export async function appendEvent(gameId: string, payload: GameEvent): Promise<StoredEvent> {
+export async function appendEvent(
+  gameId: string,
+  payload: GameEvent,
+  expectedSeq?: number,
+): Promise<StoredEvent> {
   const db = getDb();
   return db.transaction('rw', db.events, async () => {
     const lastEvent = await db.events.where('gameId').equals(gameId).last();
     const seq = lastEvent ? lastEvent.seq + 1 : 0;
+    if (expectedSeq !== undefined && expectedSeq !== seq) {
+      throw new DuplicateSeqError(gameId, expectedSeq);
+    }
     const event: StoredEvent = {
       id: crypto.randomUUID(),
       gameId,

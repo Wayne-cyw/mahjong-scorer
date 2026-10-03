@@ -77,19 +77,41 @@ describe('appendEvent / loadEvents', () => {
     await expect(db.events.add({ ...row, id: 'evt-2' })).rejects.toThrow(Dexie.ConstraintError);
   });
 
+  describe('expectedSeq (optimistic concurrency, ADR-55)', () => {
+    it('appends when expectedSeq matches the next seq in the log', async () => {
+      const gameId = await createGame();
+      const first = await appendEvent(gameId, handDrawn, 0);
+      const second = await appendEvent(gameId, gameEnded, 1);
+      expect([first.seq, second.seq]).toEqual([0, 1]);
+    });
+
+    it('throws DuplicateSeqError and writes nothing when another writer already took that seq', async () => {
+      const gameId = await createGame();
+      // Writer A and writer B both saw an empty log; A appends first.
+      await appendEvent(gameId, handDrawn, 0);
+      // B still believes the next seq is 0: it must not append on top of A's unseen event.
+      await expect(appendEvent(gameId, gameEnded, 0)).rejects.toThrow(DuplicateSeqError);
+      const events = await loadEvents(gameId);
+      expect(events.map((e) => e.payload.type)).toEqual(['HandDrawn']);
+    });
+
+    it('throws DuplicateSeqError when expectedSeq is ahead of the log', async () => {
+      const gameId = await createGame();
+      await expect(appendEvent(gameId, handDrawn, 3)).rejects.toThrow(DuplicateSeqError);
+      expect(await loadEvents(gameId)).toHaveLength(0);
+    });
+  });
+
   describe('a lost race for the same seq', () => {
     afterEach(() => {
       vi.restoreAllMocks();
     });
 
     it('maps a ConstraintError from a losing write to DuplicateSeqError (ADR-55)', async () => {
-      // A single IndexedDB transaction (ADR-54) makes a genuine same-process
-      // race structurally impossible: the store itself serializes concurrent
-      // read-write transactions, so two real appendEvent calls can never both
-      // compute the same seq. What ADR-55 guards against is the write losing
-      // the race against another writer (e.g. a second tab) that commits its
-      // row for that seq first; we provoke that outcome directly by making
-      // the underlying `events.add` reject the way IndexedDB would in that case.
+      // A single IndexedDB transaction (ADR-54) serializes writers, so the
+      // primary stale-writer detection is `expectedSeq` (tested above). This
+      // covers the last-line-of-defence mapping: if the underlying add ever
+      // rejects on the [gameId+seq] key, it surfaces as DuplicateSeqError.
       const db = getDb();
       const gameId = await createGame();
       vi.spyOn(db.events, 'add').mockRejectedValueOnce(
