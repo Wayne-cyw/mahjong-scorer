@@ -13,8 +13,13 @@ function readFileText(file: File): Promise<string> {
   });
 }
 
+export interface BackupPanelProps {
+  /** Called after a successful import so the caller can refresh what it shows. */
+  onImported?: () => void;
+}
+
 /** Export all games as a JSON file, or import one back (ADR-53). Import is all-or-nothing. */
-export function BackupPanel() {
+export function BackupPanel({ onImported }: BackupPanelProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +38,7 @@ export function BackupPanel() {
         link.href = url;
         link.download = fileName;
         link.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
       setMessage('Backup exported.');
     } catch (err) {
@@ -49,6 +54,7 @@ export function BackupPanel() {
     try {
       const counts = await importBackup(await readFileText(file));
       setMessage(`Imported ${counts.games} games and ${counts.events} events.`);
+      onImported?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -74,7 +80,7 @@ export function BackupPanel() {
             void handleImport(e.target.files?.[0]);
             e.target.value = '';
           }}
-          className="text-base"
+          className="min-h-12 text-base file:mr-3 file:h-12 file:px-4"
         />
       </label>
       {message && <p role="status">{message}</p>}

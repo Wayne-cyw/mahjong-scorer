@@ -11,6 +11,8 @@ export default function HomePage() {
   const [games, setGames] = useState<GameRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     listGames()
@@ -23,7 +25,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
@@ -35,7 +37,7 @@ export default function HomePage() {
         New game
       </Link>
       {loading ? <p className="text-neutral-600">Loading games…</p> : <GameList games={games} />}
-      <BackupPanel />
+      <BackupPanel onImported={() => setReloadKey((k) => k + 1)} />
     </main>
   );
 }

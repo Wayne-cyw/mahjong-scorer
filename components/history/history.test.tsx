@@ -193,20 +193,25 @@ describe('OverrideSheet', () => {
 describe('BackupPanel', () => {
   it('shows a readable error and no counts when import fails', async () => {
     vi.mocked(importBackup).mockRejectedValue(new Error('Backup file is not valid JSON'));
-    render(<BackupPanel />);
+    const onImported = vi.fn();
+    render(<BackupPanel onImported={onImported} />);
     const input = screen.getByLabelText(/import backup/i);
     const file = new File(['not json'], 'backup.json', { type: 'application/json' });
     fireEvent.change(input, { target: { files: [file] } });
     expect(await screen.findByRole('alert')).toHaveTextContent('Backup file is not valid JSON');
     expect(screen.queryByText(/imported/i)).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(onImported).not.toHaveBeenCalled();
   });
 
   it('reports counts after a successful import', async () => {
     vi.mocked(importBackup).mockResolvedValue({ games: 2, events: 40 });
-    render(<BackupPanel />);
+    const onImported = vi.fn();
+    render(<BackupPanel onImported={onImported} />);
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });
     fireEvent.change(screen.getByLabelText(/import backup/i), { target: { files: [file] } });
     expect(await screen.findByText(/imported 2 games and 40 events/i)).toBeInTheDocument();
+    expect(onImported).toHaveBeenCalledTimes(1);
   });
 });
 
