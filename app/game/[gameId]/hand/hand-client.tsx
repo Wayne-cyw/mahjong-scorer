@@ -23,7 +23,9 @@ export interface HandClientProps {
  * directly and review the payments preview before an explicit Confirm, which
  * is the only thing that appends a `HandWon` event. A Draw button appends
  * `HandDrawn` after its own confirmation. Cancelling at any point before that
- * appends nothing and returns to the table.
+ * appends nothing and returns to the table. A refused or failed write keeps
+ * the user on this page with the reason shown and Cancel available; only a
+ * failed load replaces the flow with a full-screen error.
  */
 export function HandClient({ gameId }: HandClientProps) {
   const router = useRouter();
@@ -32,8 +34,10 @@ export function HandClient({ gameId }: HandClientProps) {
   const recordWin = useGameStore((s) => s.recordWin);
   const recordDraw = useGameStore((s) => s.recordDraw);
   const storeError = useGameStore((s) => s.error);
+  const eventCount = useGameStore((s) => s.events.length);
 
   const [initializing, setInitializing] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   const [selection, setSelection] = useState<WinnerPickerResult | null>(null);
   const [fan, setFan] = useState(0);
@@ -43,9 +47,18 @@ export function HandClient({ gameId }: HandClientProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadGame(gameId).finally(() => {
-      if (!cancelled) setInitializing(false);
-    });
+    void loadGame(gameId)
+      .then(
+        () => {
+          if (!cancelled) setLoadFailed(false);
+        },
+        () => {
+          if (!cancelled) setLoadFailed(true);
+        },
+      )
+      .finally(() => {
+        if (!cancelled) setInitializing(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -98,13 +111,25 @@ export function HandClient({ gameId }: HandClientProps) {
     setSubmitError(null);
   };
 
+  /** A refused action resolves false and leaves its reason in the store's error. */
+  const refusalMessage = (): string => useGameStore.getState().error ?? 'This hand was not saved.';
+
   const handleConfirm = async (): Promise<void> => {
     if (!selection || !ruleset) return;
     if (fan < ruleset.minFan || fan > ruleset.capFan) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await recordWin({ winner: selection.winner, discarder: selection.discarder, fan });
+      const appended = await recordWin({
+        winner: selection.winner,
+        discarder: selection.discarder,
+        fan,
+      });
+      if (!appended) {
+        setSubmitError(refusalMessage());
+        setSubmitting(false);
+        return;
+      }
       goToTable();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
@@ -116,7 +141,11 @@ export function HandClient({ gameId }: HandClientProps) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await recordDraw();
+      if (!(await recordDraw())) {
+        setSubmitError(refusalMessage());
+        setSubmitting(false);
+        return;
+      }
       goToTable();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : String(error));
@@ -134,10 +163,26 @@ export function HandClient({ gameId }: HandClientProps) {
     );
   }
 
-  if (storeError) {
+  if (loadFailed || eventCount === 0) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
-        <p role="alert">{storeError}</p>
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+        <p role="alert">
+          {loadFailed ? (storeError ?? 'Could not load this game.') : 'Game not found.'}
+        </p>
+        <Button type="button" onClick={goToTable} className="h-12 px-6 text-base">
+          Back to table
+        </Button>
+      </main>
+    );
+  }
+
+  if (state.status !== 'playing') {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+        <p>This game is not in progress, so no hand can be recorded.</p>
+        <Button type="button" onClick={goToTable} className="h-12 px-6 text-base">
+          Back to table
+        </Button>
       </main>
     );
   }

@@ -21,7 +21,10 @@ const recordWin = vi.fn().mockResolvedValue(undefined);
 const recordDraw = vi.fn().mockResolvedValue(undefined);
 const loadGame = vi.fn().mockResolvedValue(undefined);
 
-function mockStoreState(overrides: Partial<GameState> = {}): void {
+function mockStoreState(
+  overrides: Partial<GameState> = {},
+  extra: Partial<GameStoreState> = {},
+): void {
   const state: GameState = {
     ...initialState,
     status: 'playing',
@@ -34,13 +37,16 @@ function mockStoreState(overrides: Partial<GameState> = {}): void {
   const storeValue = {
     state,
     error: null,
+    events: [{ seq: 0 }],
     loadGame,
     recordWin,
     recordDraw,
+    ...extra,
   } as unknown as GameStoreState;
   vi.mocked(useGameStore).mockImplementation(
     (selector: (state: GameStoreState) => unknown) => selector(storeValue) as never,
   );
+  Object.assign(vi.mocked(useGameStore), { getState: () => storeValue });
 }
 
 async function pickSelfDrawWinner(): Promise<void> {
@@ -61,9 +67,9 @@ function clickIncrement(times: number): void {
 
 describe('HandClient', () => {
   beforeEach(() => {
-    recordWin.mockClear();
-    recordDraw.mockClear();
-    loadGame.mockClear();
+    recordWin.mockReset().mockResolvedValue(true);
+    recordDraw.mockReset().mockResolvedValue(true);
+    loadGame.mockReset().mockResolvedValue(undefined);
     push.mockClear();
     vi.mocked(listPlayers).mockResolvedValue([]);
     mockStoreState();
@@ -183,6 +189,73 @@ describe('HandClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /confirm draw/i }));
 
     await vi.waitFor(() => expect(recordDraw).toHaveBeenCalledTimes(1));
+    expect(push).toHaveBeenCalledWith('/game/game-1');
+  });
+
+  it('shows a "not in progress" view with a way back when the game is not playing', async () => {
+    mockStoreState({ status: 'complete' });
+    render(<HandClient gameId="game-1" />);
+
+    expect(await screen.findByText(/not in progress/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Player 1' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /back to table/i }));
+    expect(push).toHaveBeenCalledWith('/game/game-1');
+  });
+
+  it('stays on the page and shows why when recordWin is refused', async () => {
+    recordWin.mockResolvedValueOnce(false);
+    mockStoreState({}, { error: 'Game is not in progress' });
+    render(<HandClient gameId="game-1" />);
+    await screen.findByRole('button', { name: 'Player 1' });
+    await pickSelfDrawWinner();
+    clickIncrement(ruleset.minFan);
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    await vi.waitFor(() => expect(recordWin).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Game is not in progress');
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
+  });
+
+  it('stays on the page with Cancel available when recordWin fails to save', async () => {
+    recordWin.mockRejectedValueOnce(new Error('disk full'));
+    render(<HandClient gameId="game-1" />);
+    await screen.findByRole('button', { name: 'Player 1' });
+    await pickSelfDrawWinner();
+    clickIncrement(ruleset.minFan);
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('disk full');
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
+  });
+
+  it('stays on the page when recordDraw is refused', async () => {
+    recordDraw.mockResolvedValueOnce(false);
+    mockStoreState({}, { error: 'Game is not in progress' });
+    render(<HandClient gameId="game-1" />);
+    await screen.findByRole('button', { name: 'Player 1' });
+    fireEvent.click(screen.getByRole('button', { name: /^draw$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm draw/i }));
+
+    await vi.waitFor(() => expect(recordDraw).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Game is not in progress');
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('keeps the flow usable when the store holds an earlier action error', async () => {
+    mockStoreState({}, { error: 'Some earlier refusal' });
+    render(<HandClient gameId="game-1" />);
+    expect(await screen.findByRole('button', { name: 'Player 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
+  });
+
+  it('shows a load failure with a way back to the table', async () => {
+    loadGame.mockRejectedValueOnce(new Error('IndexedDB is broken'));
+    mockStoreState({}, { error: 'IndexedDB is broken' });
+    render(<HandClient gameId="game-1" />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('IndexedDB is broken');
+    fireEvent.click(screen.getByRole('button', { name: /back to table/i }));
     expect(push).toHaveBeenCalledWith('/game/game-1');
   });
 });
