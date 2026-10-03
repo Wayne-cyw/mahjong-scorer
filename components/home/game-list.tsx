@@ -5,7 +5,10 @@ export interface GameListProps {
   games: readonly GameRow[];
 }
 
-/** Lists saved games, offering "Continue" only for a game still in progress. */
+/**
+ * Lists saved games, offering "Continue" for a game still in progress or one
+ * that is complete but not yet ended (so it can be ended or its last hand undone).
+ */
 export function GameList({ games }: GameListProps) {
   if (games.length === 0) {
     return <p className="text-neutral-600">No games yet.</p>;
@@ -22,7 +25,7 @@ export function GameList({ games }: GameListProps) {
             <p className="font-medium">{game.name ?? new Date(game.createdAt).toLocaleString()}</p>
             <p className="text-sm text-neutral-600 capitalize">{game.status}</p>
           </div>
-          {game.status === 'playing' && (
+          {(game.status === 'playing' || game.status === 'complete') && (
             <Link
               href={`/game/${game.id}`}
               className="flex min-h-12 items-center rounded bg-neutral-900 px-4 font-medium text-white"
