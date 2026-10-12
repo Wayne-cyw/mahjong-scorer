@@ -209,7 +209,7 @@ describe('minimum, cap and payments', () => {
 
   it('scores the cap when fan exceeds it', () => {
     const hd = h('m1m1m1p2p2p2s3s3s3z5z5z5p9p9', { selfDrawn: true });
-    const casual = scoreHand(hd, base, getPreset('hk-casual'), undefined);
+    const casual = scoreHand(hd, base, getPreset('hk-casual'));
     expect(casual).toMatchObject({ valid: true, fan: 10, scoredFan: 8 });
   });
 

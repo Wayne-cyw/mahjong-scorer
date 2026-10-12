@@ -1,4 +1,4 @@
-import { isBonus, tileIndex, toCounts, type Tile } from '@/lib/tiles';
+import { isTile, toCounts, type Tile } from '@/lib/tiles';
 import type { Meld, WinningHand } from './types';
 
 export type InvalidReason = 'too-many-copies' | 'wrong-tile-count' | 'not-a-winning-hand';
@@ -27,7 +27,9 @@ export function validateHand(
   const meldTiles = hand.melds.flatMap((m) => m.tiles);
   const all = [...hand.concealed, ...meldTiles];
 
-  if (all.some((t) => !Number.isInteger(tileIndex(t)) || isBonus(t))) {
+  // Bonus tiles live in `bonus`; anything that is not one of the 34 playing tiles is rejected
+  // before `toCounts`, which throws on unknown codes.
+  if (all.some((t) => !isTile(t))) {
     return { ok: false, reason: 'not-a-winning-hand' };
   }
   if (toCounts(all).some((n) => n > 4)) return { ok: false, reason: 'too-many-copies' };

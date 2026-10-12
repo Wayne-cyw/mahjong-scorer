@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chow, hand, kong, pung } from './hand-test-utils';
+import { chow, hand, kong, pung, tiles } from './hand-test-utils';
 import { validateHand } from './validate';
 
 describe('validateHand', () => {
@@ -48,5 +48,19 @@ describe('validateHand', () => {
     expect(validateHand(h)).toEqual({ ok: false, reason: 'not-a-winning-hand' });
     const wrapChow = hand('m1m2m3p4p5p6z1z1', { melds: [chow('s8s9s1'), chow('s1s2s3')] });
     expect(validateHand(wrapChow)).toEqual({ ok: false, reason: 'not-a-winning-hand' });
+  });
+
+  it('rejects bonus or unknown codes in the tiles instead of throwing', () => {
+    const withBonus = {
+      ...hand('m1m2m3p4p5p6s7s8s9z1z1z1z5z5'),
+      concealed: tiles('m1m2m3p4p5p6s7s8s9z1z1z1z5'),
+    };
+    withBonus.concealed.push('f1' as never);
+    expect(validateHand(withBonus)).toEqual({ ok: false, reason: 'not-a-winning-hand' });
+    const garbage = {
+      ...withBonus,
+      concealed: [...withBonus.concealed.slice(0, 13), 'x9' as never],
+    };
+    expect(validateHand(garbage)).toEqual({ ok: false, reason: 'not-a-winning-hand' });
   });
 });

@@ -1,6 +1,5 @@
 import { hand, kong, pung } from '@/lib/scoring/hand-test-utils';
-import type { Ruleset } from '@/lib/scoring';
-import type { SeatContext, WinningHand } from '@/lib/scoring';
+import type { Ruleset, SeatContext, WinningHand } from '@/lib/scoring';
 
 /**
  * Golden hands: every expected value below was worked out by hand from the

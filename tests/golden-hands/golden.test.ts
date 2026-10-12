@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPreset, scoreHand } from '@/lib/scoring';
-import { HK_RULES } from '@/lib/scoring';
+import { HK_RULES, getPreset, scoreHand } from '@/lib/scoring';
 import { GOLDEN_HANDS } from './hands';
 
 describe('golden hands', () => {
