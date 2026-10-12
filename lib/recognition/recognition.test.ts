@@ -158,6 +158,12 @@ describe('recognitionJsonSchema', () => {
     expect([...schema.required].sort()).toEqual(Object.keys(schema.properties).sort());
   });
 
+  it('carries no numeric bounds, which structured outputs reject', () => {
+    const text = JSON.stringify(schema);
+    expect(text).not.toContain('"minimum"');
+    expect(text).not.toContain('"maximum"');
+  });
+
   it('has no union types anywhere (ADR-44)', () => {
     const text = JSON.stringify(schema);
     expect(text).not.toContain('"oneOf"');

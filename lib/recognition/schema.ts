@@ -22,6 +22,19 @@ export const recognitionSchema = z.object({
 
 export type Recognition = z.infer<typeof recognitionSchema>;
 
+/** Structured outputs reject numeric bounds, which Zod adds to every `.int()` (ADR-43). */
+const UNSUPPORTED_KEYS = new Set(['minimum', 'maximum']);
+
+const stripUnsupported = (node: unknown): unknown => {
+  if (Array.isArray(node)) return node.map(stripUnsupported);
+  if (typeof node !== 'object' || node === null) return node;
+  return Object.fromEntries(
+    Object.entries(node)
+      .filter(([key]) => !UNSUPPORTED_KEYS.has(key))
+      .map(([key, value]) => [key, stripUnsupported(value)]),
+  );
+};
+
 /** JSON Schema for the model's structured output. */
 export const recognitionJsonSchema = (): object =>
-  z.toJSONSchema(recognitionSchema, { target: 'draft-7' });
+  stripUnsupported(z.toJSONSchema(recognitionSchema, { target: 'draft-7' })) as object;
