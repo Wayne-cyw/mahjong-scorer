@@ -47,5 +47,5 @@ export interface ScoreResult {
   breakdown: FanLine[];
   basePoints: number;
   payments: [number, number, number, number]; // sums to 0
-  reading: Reading;
+  reading?: Reading; // absent when the hand has no reading (invalid hands)
 }

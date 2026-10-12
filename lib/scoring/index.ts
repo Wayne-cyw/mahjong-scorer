@@ -14,3 +14,5 @@ export {
 export { settle } from './payments';
 export { validateHand, type InvalidReason } from './validate';
 export { enumerateReadings } from './readings';
+export { scoreHand } from './score-hand';
+export { HK_RULES, type FanRule, type RuleContext } from './rules';
