@@ -12,3 +12,5 @@ export {
   type Ruleset,
 } from './ruleset';
 export { settle } from './payments';
+export { validateHand, type InvalidReason } from './validate';
+export { enumerateReadings } from './readings';
