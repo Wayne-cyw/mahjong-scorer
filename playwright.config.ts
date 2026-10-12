@@ -16,7 +16,8 @@ export default defineConfig({
     { name: 'android', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: `pnpm build && pnpm start --port ${port}`,
+    // Launch next directly: a pnpm wrapper chain outlives Playwright's teardown and hangs the run.
+    command: `pnpm build && node node_modules/next/dist/bin/next start --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
