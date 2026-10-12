@@ -63,3 +63,7 @@ pnpm-debug.log*
 
 # Agent worktrees (parallel subagent checkouts)
 .claude/worktrees/
+
+# Local plans and subagent workspaces
+docs/superpowers/
+.superpowers/
