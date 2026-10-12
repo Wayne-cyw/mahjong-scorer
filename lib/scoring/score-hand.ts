@@ -28,7 +28,8 @@ function scoreReading(reading: Reading, c: RuleContext, rules: readonly FanRule[
   let kept = matched.filter((m) => !excluded.has(m.rule.id));
 
   const limit = kept.some((m) => m.rule.fan === 'limit');
-  if (limit) kept = kept.filter((m) => m.rule.fan === 'limit');
+  // A limit hand scores the cap once, however many limit patterns it matches.
+  if (limit) kept = kept.filter((m) => m.rule.fan === 'limit').slice(0, 1);
 
   const lines: FanLine[] = kept.map(({ rule, times }) => ({
     ruleId: rule.id,

@@ -403,6 +403,17 @@ export const GOLDEN_HANDS: GoldenHand[] = [
     expect: { valid: true, fan: 10, lines: [['great-four-winds', 10]] },
   },
   {
+    name: 'two limit patterns at once list only one limit line',
+    hand: h('z1z1z1z2z2z2z3z3z3z4z4z4z5z5'),
+    ctx: east,
+    expect: {
+      valid: true,
+      fan: 10,
+      lines: [['great-four-winds', 10]],
+      payments: [128, -128, 0, 0],
+    },
+  },
+  {
     name: 'all honours',
     hand: h('z1z1z1z2z2z2z3z3z3z5z5z5z6z6'),
     ctx: east,
