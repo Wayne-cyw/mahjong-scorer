@@ -61,10 +61,11 @@ export function SummaryClient({ gameId }: SummaryClientProps) {
 
   const startingPoints = startingPointsOf(events);
 
-  if (loading) {
+  // createGame swaps the shared store to the new game, so stop rendering standings from it.
+  if (loading || rematching) {
     return (
       <main className="flex min-h-dvh items-center justify-center p-6">
-        <p>Loading standings…</p>
+        <p>{rematching ? 'Starting rematch…' : 'Loading standings…'}</p>
       </main>
     );
   }
@@ -113,8 +114,10 @@ export function SummaryClient({ gameId }: SummaryClientProps) {
       playerIds.forEach((id, i) => {
         seatOf[id] = i as Seat;
       });
-      await assignSeats(seatOf);
-      await chooseFirstDealer(plan.firstDealer);
+      // A failure past createGame leaves an unstarted game in setup; a retry makes another.
+      if (!(await assignSeats(seatOf)) || !(await chooseFirstDealer(plan.firstDealer))) {
+        throw new Error('Could not set up the rematch.');
+      }
       router.push(`/game/${newId}`);
     } catch (error) {
       setRematchError(error instanceof Error ? error.message : String(error));

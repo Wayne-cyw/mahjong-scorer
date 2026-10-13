@@ -181,6 +181,17 @@ describe('SummaryClient', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it('reports a refused seat assignment instead of opening a half-made game', async () => {
+    assignSeats.mockResolvedValue(false);
+    render(<SummaryClient gameId="g1" />);
+    await screen.findByTestId('standing-0');
+    await waitFor(() => expect(vi.mocked(listPlayers)).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Rematch' }));
+
+    await waitFor(() => expect(chooseFirstDealer).not.toHaveBeenCalled());
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it('shows a way home when the game does not exist', async () => {
     mockStore({ events: [], state: initialState });
     render(<SummaryClient gameId="missing" />);
