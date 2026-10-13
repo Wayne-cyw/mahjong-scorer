@@ -10,6 +10,7 @@ import {
   replay,
   rollDice as rollThreeDice,
 } from '@/lib/game';
+import { analytics } from '@/lib/analytics/analytics';
 import {
   DuplicateSeqError,
   appendEvent,
@@ -26,6 +27,19 @@ import {
  * when it was refused (no event appended, `error` set). It rejects only when
  * the write itself failed (e.g. IndexedDB error), also setting `error`.
  */
+/**
+ * Optional context for the `hand_recorded` analytics event. The camera flow
+ * supplies these; they default to a manual hand with no corrections and no
+ * measured duration. None of it is stored in the event log.
+ */
+export interface HandAnalytics {
+  method?: 'photo' | 'manual';
+  /** How many tiles the player corrected after recognition. */
+  corrections?: number;
+  /** `Date.now()` when the player started entering this hand; used for `durationMs`. */
+  startedAt?: number;
+}
+
 export interface GameStoreState {
   gameId: string | null;
   events: StoredEvent[];
@@ -41,15 +55,17 @@ export interface GameStoreState {
   assignSeats: (seatOf: Record<string, Seat>) => Promise<boolean>;
   chooseFirstDealer: (seat: Seat, dice?: [number, number, number]) => Promise<boolean>;
   rollDice: (args?: { physicalTotal?: number }) => Promise<boolean>;
-  recordWin: (args: {
-    winner: Seat;
-    discarder?: Seat;
-    fan: number;
-    hand?: WinningHand;
-    breakdown?: FanLine[];
-    engineVersion?: string;
-  }) => Promise<boolean>;
-  recordDraw: () => Promise<boolean>;
+  recordWin: (
+    args: {
+      winner: Seat;
+      discarder?: Seat;
+      fan: number;
+      hand?: WinningHand;
+      breakdown?: FanLine[];
+      engineVersion?: string;
+    } & HandAnalytics,
+  ) => Promise<boolean>;
+  recordDraw: (args?: HandAnalytics) => Promise<boolean>;
   voidHand: (targetId: string) => Promise<boolean>;
   correctHand: (targetId: string, replacement: HandWonPayload) => Promise<boolean>;
   overrideState: (args: {
@@ -76,6 +92,14 @@ const errorMessage = (error: unknown): string =>
  */
 type Plan = (state: GameState) => { payload: GameEvent } | { refuse: string };
 
+const captureHandRecorded = ({ method, corrections, startedAt }: HandAnalytics): void => {
+  analytics.capture('hand_recorded', {
+    method: method ?? 'manual',
+    corrections: corrections ?? 0,
+    durationMs: startedAt === undefined ? 0 : Math.max(0, Math.round(Date.now() - startedAt)),
+  });
+};
+
 const nextSeqOf = (events: readonly StoredEvent[]): number => {
   const last = events.at(-1);
   return last ? last.seq + 1 : 0;
@@ -101,7 +125,7 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
    * on top of. On that conflict the log is reloaded and replayed, the action's guard
    * is re-run against the fresh state, and the append is retried or refused (ADR-55).
    */
-  const commit = async (plan: Plan): Promise<boolean> => {
+  const commit = async (plan: Plan, onAppended?: () => void): Promise<boolean> => {
     const { gameId } = get();
     if (gameId === null) return refuse('No game loaded');
     const previousStatus = get().state.status;
@@ -128,6 +152,15 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
       set({ loading: false, error: errorMessage(error) });
       throw error;
     }
+    // Analytics fire only after a durable append, never for a refused action.
+    // `capture` is a no-op without consent and never throws.
+    onAppended?.();
+    const nextStatus = get().state.status;
+    if (previousStatus === 'setup' && nextStatus === 'playing') analytics.capture('game_started');
+    if (previousStatus !== 'complete' && nextStatus === 'complete') {
+      analytics.capture('game_completed');
+    }
+
     // Keep the denormalized `games` row (used for fast listing) in sync with the
     // replayed lifecycle status, but only write when it actually changed. This is
     // best-effort: the event append and state update above are already durable and
@@ -206,40 +239,52 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
         };
       }),
 
-    recordWin: ({ winner, discarder, fan, hand, breakdown, engineVersion }) =>
-      commit((state) => {
-        if (state.status !== 'playing') return NOT_IN_PROGRESS;
-        const ruleset = state.ruleset;
-        if (ruleset === null) return { refuse: 'No ruleset for this game' };
-        const manual = hand === undefined;
-        const basePoints = basePointsFor(fan, ruleset);
-        const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
-        return {
-          payload: {
-            type: 'HandWon',
-            winner,
-            discarder,
-            hand,
-            fan,
-            breakdown: breakdown ?? [],
-            payments,
-            engineVersion: manual
-              ? MANUAL_ENGINE_VERSION
-              : (engineVersion ?? MANUAL_ENGINE_VERSION),
-            manual,
-          },
-        };
-      }),
-
-    recordDraw: () =>
-      commit((state) =>
-        state.status !== 'playing' ? NOT_IN_PROGRESS : { payload: { type: 'HandDrawn' } },
+    recordWin: ({ winner, discarder, fan, hand, breakdown, engineVersion, ...analyticsArgs }) =>
+      commit(
+        (state) => {
+          if (state.status !== 'playing') return NOT_IN_PROGRESS;
+          const ruleset = state.ruleset;
+          if (ruleset === null) return { refuse: 'No ruleset for this game' };
+          const manual = hand === undefined;
+          const basePoints = basePointsFor(fan, ruleset);
+          const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
+          return {
+            payload: {
+              type: 'HandWon',
+              winner,
+              discarder,
+              hand,
+              fan,
+              breakdown: breakdown ?? [],
+              payments,
+              engineVersion: manual
+                ? MANUAL_ENGINE_VERSION
+                : (engineVersion ?? MANUAL_ENGINE_VERSION),
+              manual,
+            },
+          };
+        },
+        () => captureHandRecorded(analyticsArgs),
       ),
 
-    voidHand: (targetId) => commit(() => ({ payload: { type: 'HandVoided', targetId } })),
+    recordDraw: (args) =>
+      commit(
+        (state) =>
+          state.status !== 'playing' ? NOT_IN_PROGRESS : { payload: { type: 'HandDrawn' } },
+        () => captureHandRecorded(args ?? {}),
+      ),
+
+    voidHand: (targetId) =>
+      commit(
+        () => ({ payload: { type: 'HandVoided', targetId } }),
+        () => analytics.capture('hand_edited'),
+      ),
 
     correctHand: (targetId, replacement) =>
-      commit(() => ({ payload: { type: 'HandCorrected', targetId, replacement } })),
+      commit(
+        () => ({ payload: { type: 'HandCorrected', targetId, replacement } }),
+        () => analytics.capture('hand_edited'),
+      ),
 
     overrideState: ({ dealer, prevailing, dealerRepeat }) =>
       commit(() => ({ payload: { type: 'StateOverridden', dealer, prevailing, dealerRepeat } })),
