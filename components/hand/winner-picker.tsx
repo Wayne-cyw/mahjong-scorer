@@ -14,8 +14,6 @@ export interface WinnerPickerResult {
 }
 
 export interface WinnerPickerProps {
-  /** Kept for callers; the compass always shows all four seats where they sit. */
-  seats?: readonly Seat[];
   seatLabel: (seat: Seat) => string;
   /** The seat's wind this hand, shown on its tile so players find themselves at a glance. */
   windOf?: (seat: Seat) => Wind;

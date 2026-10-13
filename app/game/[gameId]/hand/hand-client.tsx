@@ -25,8 +25,6 @@ import { ReviewScreen, type ReviewConfirmation } from '@/components/hand/review-
 import { ManualFanEntry } from '@/components/hand/manual-fan-entry';
 import { PaymentsPreview } from '@/components/hand/payments-preview';
 
-const SEATS: readonly Seat[] = [0, 1, 2, 3];
-
 /** What the camera step handed to the review screen. Empty when the player skipped it. */
 interface Recognition {
   photoUrl?: string;
@@ -305,7 +303,6 @@ export function HandClient({ gameId }: HandClientProps) {
       {selection === null ? (
         <>
           <WinnerPicker
-            seats={SEATS}
             seatLabel={seatLabel}
             windOf={(seat) => seatWind(seat, state.dealer)}
             onComplete={handleWinnerComplete}

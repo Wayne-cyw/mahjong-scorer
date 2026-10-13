@@ -8,16 +8,13 @@ export interface SealProps {
   glyph: string;
   /** Spoken label; the glyph itself is decorative. */
   label: string;
-  /** Shared id so the same seal glides between seats instead of blinking out and in. */
-  layoutId?: string;
   className?: string;
 }
 
 /** A square lacquer-red chop, the mark every parlour uses for "this one is the banker". */
-export function Seal({ glyph, label, layoutId, className }: SealProps) {
+export function Seal({ glyph, label, className }: SealProps) {
   return (
     <m.span
-      layoutId={layoutId}
       initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
       animate={{ scale: 1, rotate: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 420, damping: 20 }}

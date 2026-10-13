@@ -15,7 +15,8 @@ const TILE = {
 async function scores(page: Page): Promise<number[]> {
   const out: number[] = [];
   for (const name of NAMES) {
-    out.push(Number(await page.getByLabel(`${name} score`).innerText()));
+    const text = await page.getByText(new RegExp(`^${name} score: -?\\d+$`)).innerText();
+    out.push(Number(text.split(': ')[1]));
   }
   return out;
 }
