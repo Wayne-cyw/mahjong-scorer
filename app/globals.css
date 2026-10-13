@@ -1,50 +1,57 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Mahjong parlour, Hong Kong, after dark: green baize ground, lightbox-yellow signboards,
+ * lacquer-red seals and 紅白藍 canvas trim. One theme, tuned for a phone on a dim table.
+ */
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.32 0.09 152);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.94 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.94 0 0);
-  --muted-foreground: oklch(0.32 0 0);
-  --accent: oklch(0.94 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.48 0.21 27);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.7 0 0);
-  --input: oklch(0.7 0 0);
-  --ring: oklch(0.32 0.09 152);
-}
+  color-scheme: dark;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.14 152);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.78 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.65 0.2 27);
-  --destructive-foreground: oklch(0.145 0 0);
-  --border: oklch(0.45 0 0);
-  --input: oklch(0.45 0 0);
-  --ring: oklch(0.7 0.14 152);
+  /* Palette roles: one ground, one ink, one accent (signboard yellow), red kept for seals. */
+  --felt: #0c3a2f;
+  --felt-raised: #14503f;
+  --felt-high: #1d6652;
+  --felt-deep: #072a22;
+  --ivory: #f6f0dc;
+  --ivory-dim: #b9cbb9;
+  --sign: #ffc62e;
+  --sign-deep: #b98400;
+  --lacquer: #c9281f;
+  --lacquer-deep: #7a1713;
+  --jade: #2e9e7e;
+  --canvas-blue: #1f4fa3;
+
+  --radius: 0.25rem;
+  --background: var(--felt);
+  --foreground: var(--ivory);
+  --card: var(--felt-raised);
+  --card-foreground: var(--ivory);
+  --popover: var(--felt-deep);
+  --popover-foreground: var(--ivory);
+  --primary: var(--sign);
+  --primary-foreground: #1b1403;
+  --secondary: var(--felt-high);
+  --secondary-foreground: var(--ivory);
+  --muted: var(--felt-raised);
+  --muted-foreground: var(--ivory-dim);
+  --accent: var(--felt-high);
+  --accent-foreground: var(--ivory);
+  --destructive: var(--lacquer);
+  --destructive-foreground: var(--ivory);
+  --border: #3d7c68;
+  --input: #5c9885;
+  --ring: var(--sign);
+
+  --font-display-stack:
+    'Noto Serif TC', 'Songti TC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'STSong', 'PMingLiU',
+    serif;
+  --font-text-stack:
+    -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Microsoft JhengHei',
+    'Noto Sans TC', system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @theme inline {
@@ -67,17 +74,137 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+
+  --color-felt: var(--felt);
+  --color-felt-raised: var(--felt-raised);
+  --color-felt-high: var(--felt-high);
+  --color-felt-deep: var(--felt-deep);
+  --color-ivory: var(--ivory);
+  --color-ivory-dim: var(--ivory-dim);
+  --color-sign: var(--sign);
+  --color-sign-deep: var(--sign-deep);
+  --color-lacquer: var(--lacquer);
+  --color-lacquer-deep: var(--lacquer-deep);
+  --color-jade: var(--jade);
+  --color-canvas-blue: var(--canvas-blue);
+
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-text-stack);
+  --font-display: var(--font-display-stack);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    background: var(--sign);
+    color: #1b1403;
+  }
+}
+
+@layer utilities {
+  /* 紅白藍: the red-white-blue canvas bag stripe, drawn flat and kept to a trim. */
+  .trim-canvas {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--lacquer) 0 14px,
+      var(--ivory) 14px 28px,
+      var(--canvas-blue) 28px 42px,
+      var(--ivory) 42px 56px
+    );
+  }
+
+  /* Tabular figures for scores, with the display face's heavy cut. */
+  .numerals {
+    font-family: var(--font-display-stack);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 900;
+  }
+}
+
+/* A hanging signboard settles with a damped swing about its top fixing. */
+@keyframes sign-swing {
+  0% {
+    transform: translateY(-110%) rotate(-5deg);
+  }
+  38% {
+    transform: translateY(0) rotate(3.2deg);
+  }
+  58% {
+    transform: rotate(-1.8deg);
+  }
+  76% {
+    transform: rotate(0.9deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lamp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes stripe-run {
+  to {
+    background-position: 112px 0;
+  }
+}
+
+.anim-sign-swing {
+  transform-origin: 50% 0;
+  animation: sign-swing 1.5s var(--ease-out-expo) both;
+}
+
+.anim-rise {
+  animation: rise-in 0.6s var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.anim-lamp {
+  animation: lamp-pulse 1.6s ease-in-out infinite;
+}
+
+.anim-stripe-run {
+  background-size: 112px 112px;
+  animation: stripe-run 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sign-swing,
+  .anim-rise,
+  .anim-lamp,
+  .anim-stripe-run {
+    animation: none;
   }
 }

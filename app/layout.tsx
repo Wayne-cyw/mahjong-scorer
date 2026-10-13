@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { MotionProvider } from '@/components/motion/motion-provider';
 import { UpdatePrompt } from '@/components/pwa/update-prompt';
 import './globals.css';
 
@@ -8,14 +9,16 @@ export const metadata: Metadata = {
   icons: { apple: '/icons/apple-touch-icon.png' },
 };
 
-export const viewport: Viewport = { themeColor: '#0f5132' };
+export const viewport: Viewport = { themeColor: '#0c3a2f' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {children}
-        <UpdatePrompt />
+        <MotionProvider>
+          {children}
+          <UpdatePrompt />
+        </MotionProvider>
       </body>
     </html>
   );
