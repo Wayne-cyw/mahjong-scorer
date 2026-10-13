@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { setFlag, type HandDraft, type HandFlag } from '@/lib/game';
 import { Button } from '@/components/ui/button';
 
@@ -33,12 +34,19 @@ export function FlagsPanel({ draft, onChange }: FlagsPanelProps) {
   const row = ({ flag, en, zh }: FlagInfo) => (
     <li key={flag}>
       <label className="has-[:checked]:bg-felt-high bg-felt-raised has-[:focus-visible]:ring-ring/60 flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-3 text-base transition-colors duration-150 has-[:focus-visible]:ring-[3px]">
-        <input
-          type="checkbox"
-          checked={draft.flags[flag] === true}
-          onChange={(e) => onChange(setFlag(draft, flag, e.target.checked))}
-          className="bg-felt-deep checked:bg-sign relative size-7 shrink-0 appearance-none rounded-sm transition-colors duration-150 after:absolute after:inset-0 after:grid after:place-items-center after:text-lg after:font-black after:text-[#1b1403] after:opacity-0 after:content-['✓'] checked:after:opacity-100"
-        />
+        <span className="relative grid size-7 shrink-0 place-items-center">
+          <input
+            type="checkbox"
+            checked={draft.flags[flag] === true}
+            onChange={(e) => onChange(setFlag(draft, flag, e.target.checked))}
+            className="bg-felt-deep checked:bg-sign peer size-7 appearance-none rounded-sm transition-colors duration-150"
+          />
+          <Check
+            aria-hidden="true"
+            strokeWidth={4}
+            className="pointer-events-none absolute size-5 scale-50 text-[#1b1403] opacity-0 transition-[opacity,transform] duration-150 peer-checked:scale-100 peer-checked:opacity-100"
+          />
+        </span>
         <span>
           {en} <span lang="zh-Hant">{zh}</span>
         </span>

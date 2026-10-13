@@ -46,7 +46,7 @@ export default function HomePage() {
           <Link
             href="/setup"
             style={{ ['--i' as string]: 2 }}
-            className="anim-rise bg-primary text-primary-foreground border-sign-deep font-display flex h-16 items-center justify-center gap-3 rounded-md border-b-4 text-2xl font-black transition-transform duration-150 active:translate-y-[3px] active:border-b"
+            className="anim-rise bg-primary text-primary-foreground border-sign-deep font-display flex h-16 items-center justify-center gap-3 rounded-md border-b-4 text-2xl font-black transition-transform duration-150 active:translate-y-[3px] active:border-b-2"
           >
             <span aria-hidden="true">開</span>
             New game

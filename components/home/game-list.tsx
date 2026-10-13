@@ -43,7 +43,7 @@ export function GameList({ games }: GameListProps) {
             {live && (
               <Link
                 href={`/game/${game.id}`}
-                className="bg-primary text-primary-foreground border-sign-deep flex h-12 shrink-0 items-center rounded-md border-b-4 px-5 text-base font-bold transition-transform duration-150 active:translate-y-[3px] active:border-b"
+                className="bg-primary text-primary-foreground border-sign-deep flex h-12 shrink-0 items-center rounded-md border-b-4 px-5 text-base font-bold transition-transform duration-150 active:translate-y-[3px] active:border-b-2"
               >
                 Continue
               </Link>
