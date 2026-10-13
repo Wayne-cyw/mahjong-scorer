@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "result": {
+    "isMahjongHand": true,
+    "concealed": [
+      "m1",
+      "m1",
+      "m1",
+      "p4",
+      "p4",
+      "p4",
+      "s7",
+      "s7",
+      "s8",
+      "z7",
+      "z7",
+      "z7",
+      "z1",
+      "z1"
+    ],
+    "melds": [],
+    "bonus": [],
+    "uncertain": [{ "row": "concealed", "index": 8 }],
+    "warnings": []
+  }
+}
