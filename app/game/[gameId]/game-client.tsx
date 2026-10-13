@@ -95,7 +95,7 @@ export function GameClient({ gameId }: GameClientProps) {
         playerNames={playerNames}
         onHandOver={() => router.push(`/game/${gameId}/hand`)}
         onHistory={() => router.push(`/game/${gameId}/history`)}
-        onGameEnded={() => router.push('/')}
+        onGameEnded={() => router.push(`/game/${gameId}/summary`)}
       />
     </main>
   );
