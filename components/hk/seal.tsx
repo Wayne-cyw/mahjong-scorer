@@ -18,7 +18,9 @@ export function Seal({ glyph, label, layoutId, className }: SealProps) {
   return (
     <m.span
       layoutId={layoutId}
-      transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+      initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
+      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 20 }}
       className={cn(
         'bg-lacquer text-ivory font-display inline-flex size-9 shrink-0 items-center justify-center rounded-sm text-xl leading-none font-black',
         className,

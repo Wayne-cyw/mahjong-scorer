@@ -27,11 +27,16 @@ export function ScoreFlip({ value, className, label }: ScoreFlipProps) {
 
   return (
     <span className={cn('relative inline-flex', className)}>
+      {label && (
+        <span className="sr-only">
+          {label}: {value}
+        </span>
+      )}
       <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <m.span
           key={value}
           custom={direction}
-          aria-label={label}
+          aria-hidden={label ? true : undefined}
           className="numerals inline-block"
           variants={{
             enter: (d: number) => ({ y: `${d * -55}%`, opacity: 0, scale: 0.85 }),

@@ -128,7 +128,6 @@ export function SeatCard({
 
       {isDealer && (
         <Seal
-          layoutId="dealer-seal"
           glyph="莊"
           label="Dealer 莊"
           className="absolute top-0 right-0 size-7 rounded-none rounded-bl-md text-base"

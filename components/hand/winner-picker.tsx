@@ -14,7 +14,8 @@ export interface WinnerPickerResult {
 }
 
 export interface WinnerPickerProps {
-  seats: readonly Seat[];
+  /** Kept for callers; the compass always shows all four seats where they sit. */
+  seats?: readonly Seat[];
   seatLabel: (seat: Seat) => string;
   /** The seat's wind this hand, shown on its tile so players find themselves at a glance. */
   windOf?: (seat: Seat) => Wind;
@@ -39,7 +40,7 @@ const stepMotion = {
  * Seats are tapped where they sit: the compass puts each player's tile on their own edge of the
  * table, turned to face them.
  */
-export function WinnerPicker({ seats, seatLabel, windOf, onComplete }: WinnerPickerProps) {
+export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProps) {
   const [winner, setWinner] = useState<Seat | null>(null);
   const [subStep, setSubStep] = useState<SubStep>('winner');
 
@@ -109,8 +110,6 @@ export function WinnerPicker({ seats, seatLabel, windOf, onComplete }: WinnerPic
     ) as Record<Slot, ReactNode>;
     return slots;
   };
-
-  void seats;
 
   return (
     <div className="flex flex-col gap-4">

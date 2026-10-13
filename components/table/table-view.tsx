@@ -119,6 +119,7 @@ export function TableView({
     const name = (playerId && playerNames[playerId]) || `Player ${seat + 1}`;
     return (
       <SeatCard
+        key={seat}
         seat={seat}
         name={name}
         score={state.scores[seat]}
