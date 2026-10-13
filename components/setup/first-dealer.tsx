@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import type { Seat } from '@/lib/tiles';
 import { rollDie, tiedPlayers } from '@/lib/game';
+import { Button } from '@/components/ui/button';
+import { Die } from '@/components/dice/die';
 
 export interface FirstDealerPlayer {
   seat: Seat;
@@ -29,6 +31,8 @@ export function nextCandidates(candidates: readonly Seat[], rolls: readonly numb
   return tiedIndexes.map((i) => candidates[i]!);
 }
 
+const WIND_GLYPH = ['東', '南', '西', '北'] as const;
+
 const emptyRollMap = (): Partial<Record<Seat, number>> => ({});
 const emptyInputMap = (): Partial<Record<Seat, string>> => ({});
 
@@ -40,6 +44,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
   const [mode, setMode] = useState<Mode>('choose');
   const [candidates, setCandidates] = useState<Seat[]>(players.map((p) => p.seat));
   const [lastRolls, setLastRolls] = useState<Partial<Record<Seat, number>>>(emptyRollMap());
+  const [rollRound, setRollRound] = useState(0);
   const [physicalInputs, setPhysicalInputs] =
     useState<Partial<Record<Seat, string>>>(emptyInputMap());
 
@@ -59,6 +64,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
       rollMap[seat] = rolls[i];
     });
     setLastRolls(rollMap);
+    setRollRound((n) => n + 1);
     if (winners.length === 1) {
       chooseSeat(winners[0]!);
       return;
@@ -81,64 +87,82 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
   }
 
   const rerolling = candidates.length < players.length;
+  const inputClass =
+    'bg-felt-deep border-felt-deep text-foreground focus-visible:border-sign focus-visible:bg-felt h-14 w-20 rounded-md border-b-4 px-3 text-center text-xl font-bold outline-none disabled:opacity-50';
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">First dealer</h2>
+      <h2 className="font-display text-xl font-black">First dealer</h2>
 
       {mode === 'choose' && (
         <div className="flex flex-col gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => setMode('app-roll')}
             disabled={disabled}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
+            className="h-14 px-4 text-lg"
           >
             Roll in the app
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setMode('physical')}
             disabled={disabled}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
+            className="h-14 px-4 text-lg"
           >
             Enter a physical roll
-          </button>
-          <p className="text-sm text-neutral-600">Or tap a seat to choose directly:</p>
-          <div className="flex flex-col gap-2">
+          </Button>
+          <p className="text-ivory-dim mt-2 text-base">Or tap a seat to choose directly:</p>
+          <div className="grid grid-cols-2 gap-3">
             {players.map((p) => (
-              <button
+              <Button
                 key={p.seat}
                 type="button"
+                variant="secondary"
                 onClick={() => chooseSeat(p.seat)}
                 disabled={disabled}
-                className="min-h-12 rounded border border-neutral-400 px-4 text-left font-medium disabled:opacity-50"
+                className="font-display h-16 min-w-0 justify-start gap-3 px-3 text-lg font-black"
               >
-                {p.name}
-              </button>
+                <span
+                  aria-hidden="true"
+                  className="bg-ivory text-lacquer grid size-10 shrink-0 place-items-center rounded-sm text-2xl leading-none"
+                >
+                  {WIND_GLYPH[p.seat]}
+                </span>
+                <span className="truncate">{p.name}</span>
+              </Button>
             ))}
           </div>
         </div>
       )}
 
       {mode === 'app-roll' && (
-        <div className="flex flex-col gap-3">
-          <p>
+        <div className="flex flex-col gap-4">
+          <p className="text-base">
             {rerolling ? 'Tied — rolling again for: ' : 'Rolling for: '}
             {candidates.map(nameOf).join(', ')}
           </p>
-          <button
+          <Button
             type="button"
             onClick={rollInApp}
             disabled={disabled}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
+            className="h-14 px-4 text-lg"
           >
             Roll dice
-          </button>
-          <ul>
+          </Button>
+          <ul className="flex flex-col gap-2">
             {candidates.map((seat) => (
-              <li key={seat}>
-                {nameOf(seat)}: {lastRolls[seat] ?? '—'}
+              <li
+                key={seat}
+                className="bg-felt-raised flex min-h-16 items-center justify-between gap-3 rounded-md px-4"
+              >
+                <span className="font-display text-lg font-black">
+                  {nameOf(seat)}: {lastRolls[seat] ?? '—'}
+                </span>
+                {lastRolls[seat] !== undefined && (
+                  <Die key={`${seat}-${rollRound}`} value={lastRolls[seat]!} index={seat} tumble />
+                )}
               </li>
             ))}
           </ul>
@@ -147,18 +171,19 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
 
       {mode === 'physical' && (
         <div className="flex flex-col gap-3">
-          <p>
+          <p className="text-base">
             {rerolling ? 'Tied — enter a new roll for: ' : 'Enter each roll (1-6): '}
             {rerolling ? candidates.map(nameOf).join(', ') : ''}
           </p>
           {candidates.map((seat) => (
-            <div key={seat} className="flex items-center gap-3">
-              <label htmlFor={`roll-${seat}`} className="w-32">
+            <div key={seat} className="flex items-center justify-between gap-3">
+              <label htmlFor={`roll-${seat}`} className="font-display text-lg font-black">
                 {nameOf(seat)}
               </label>
               <input
                 id={`roll-${seat}`}
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={6}
                 value={physicalInputs[seat] ?? ''}
@@ -166,18 +191,18 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
                   setPhysicalInputs((prev) => ({ ...prev, [seat]: event.target.value }))
                 }
                 disabled={disabled}
-                className="min-h-12 w-20 rounded border border-neutral-400 px-3 disabled:opacity-50"
+                className={inputClass}
               />
             </div>
           ))}
-          <button
+          <Button
             type="button"
             onClick={submitPhysical}
             disabled={disabled}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
+            className="h-14 px-4 text-lg"
           >
             Submit rolls
-          </button>
+          </Button>
         </div>
       )}
     </div>
