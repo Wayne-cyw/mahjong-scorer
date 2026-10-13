@@ -13,7 +13,11 @@ import {
 } from '@/lib/recognition';
 import { basePointsFor, settle } from '@/lib/scoring';
 import { listPlayers } from '@/lib/db';
+import { seatWind } from '@/lib/game';
 import { useGameStore } from '@/stores/game-store';
+import { Screen } from '@/components/hk/screen';
+import { StatusScreen } from '@/components/hk/status-screen';
+import { Seal } from '@/components/hk/seal';
 import { Button } from '@/components/ui/button';
 import { CameraCapture } from '@/components/hand/camera-capture';
 import { WinnerPicker, type WinnerPickerResult } from '@/components/hand/winner-picker';
@@ -225,41 +229,41 @@ export function HandClient({ gameId }: HandClientProps) {
 
   if (initializing) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <StatusScreen>
         <p>Loading game…</p>
-      </main>
+      </StatusScreen>
     );
   }
 
   if (loadFailed || eventCount === 0) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+      <StatusScreen>
         <p role="alert">
           {loadFailed ? (storeError ?? 'Could not load this game.') : 'Game not found.'}
         </p>
         <Button type="button" onClick={goToTable} className="h-12 px-6 text-base">
           Back to table
         </Button>
-      </main>
+      </StatusScreen>
     );
   }
 
   if (state.status !== 'playing') {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+      <StatusScreen>
         <p>This game is not in progress, so no hand can be recorded.</p>
         <Button type="button" onClick={goToTable} className="h-12 px-6 text-base">
           Back to table
         </Button>
-      </main>
+      </StatusScreen>
     );
   }
 
   if (!ruleset) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <StatusScreen>
         <p role="alert">No ruleset for this game.</p>
-      </main>
+      </StatusScreen>
     );
   }
 
@@ -277,31 +281,37 @@ export function HandClient({ gameId }: HandClientProps) {
     selection !== null && fan >= ruleset.minFan && fan <= ruleset.capFan && !submitting;
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-6 p-6">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Hand over</h1>
+    <Screen
+      title="Hand over"
+      glyph="胡"
+      action={
         <Button
           type="button"
           variant="outline"
           onClick={goToTable}
           disabled={submitting}
-          className="h-12 px-4 text-base"
+          className="h-11 px-4 text-base"
         >
           Cancel
         </Button>
-      </header>
-
+      }
+    >
       {submitError && (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
           {submitError}
         </p>
       )}
 
       {selection === null ? (
         <>
-          <WinnerPicker seats={SEATS} seatLabel={seatLabel} onComplete={handleWinnerComplete} />
+          <WinnerPicker
+            seats={SEATS}
+            seatLabel={seatLabel}
+            windOf={(seat) => seatWind(seat, state.dealer)}
+            onComplete={handleWinnerComplete}
+          />
 
-          <div className="border-border mt-2 flex flex-col gap-3 border-t pt-4">
+          <div className="bg-felt-deep flex flex-col gap-3 rounded-md p-4">
             {!confirmingDraw ? (
               <Button
                 type="button"
@@ -309,11 +319,14 @@ export function HandClient({ gameId }: HandClientProps) {
                 onClick={() => setConfirmingDraw(true)}
                 className="h-12 px-4 text-base"
               >
+                <span aria-hidden="true" className="font-display font-black">
+                  流局
+                </span>
                 Draw
               </Button>
             ) : (
               <div className="flex flex-col gap-3">
-                <p>Record this hand as a draw?</p>
+                <p className="font-display text-lg font-black">Record this hand as a draw?</p>
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -339,12 +352,15 @@ export function HandClient({ gameId }: HandClientProps) {
         </>
       ) : (
         <>
-          <p className="text-base">
-            {seatLabel(selection.winner)} won
-            {selection.discarder === undefined
-              ? ' by self-draw'
-              : ` off ${seatLabel(selection.discarder)}'s discard`}
-            .
+          <p className="font-display flex items-center gap-3 text-xl leading-snug font-black">
+            <Seal glyph="胡" label="" className="size-10 text-2xl" />
+            <span>
+              {seatLabel(selection.winner)} won
+              {selection.discarder === undefined
+                ? ' by self-draw'
+                : ` off ${seatLabel(selection.discarder)}'s discard`}
+              .
+            </span>
           </p>
 
           {entry === 'camera' && (
@@ -431,6 +447,6 @@ export function HandClient({ gameId }: HandClientProps) {
           )}
         </>
       )}
-    </main>
+    </Screen>
   );
 }
