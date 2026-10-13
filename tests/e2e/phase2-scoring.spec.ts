@@ -44,6 +44,8 @@ async function openHandAs(page: Page, winner: string, discarder?: string): Promi
     await page.getByRole('button', { name: 'Discard', exact: true }).click();
     await page.getByRole('button', { name: discarder, exact: true }).click();
   }
+  // The camera step comes first; this suite enters tiles by hand.
+  await page.getByRole('button', { name: 'Skip, enter manually' }).click();
 }
 
 test('phase 2: tile-entry scoring, below-minimum guard and undo', async ({ page }) => {

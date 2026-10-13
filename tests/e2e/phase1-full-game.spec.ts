@@ -41,7 +41,9 @@ async function recordWin(
     await page.getByRole('button', { name: 'Discard', exact: true }).click();
     await page.getByRole('button', { name: discarder, exact: true }).click();
   }
-  // The tile review screen is the default; the manual flow sits behind this button.
+  // The camera step comes first; skipping it opens the tile review screen, and the manual
+  // fan flow sits behind its "Enter fan directly" button.
+  await page.getByRole('button', { name: 'Skip, enter manually' }).click();
   await page.getByRole('button', { name: 'Enter fan directly' }).click();
   for (let i = 0; i < fan; i++) await page.getByRole('button', { name: 'Increase fan' }).click();
   await page.getByRole('button', { name: 'Confirm', exact: true }).click();
