@@ -5,6 +5,7 @@ import type { FanLine, Ruleset, ScoreResult, WinningHand } from '@/lib/scoring';
 import { scoreHand } from '@/lib/scoring';
 import type { Seat, Wind } from '@/lib/tiles';
 import { draftToHand, emptyDraft, seatWind, type HandDraft } from '@/lib/game';
+import { countCorrections, type UncertainTiles } from '@/lib/recognition';
 import packageInfo from '@/package.json';
 import { Button } from '@/components/ui/button';
 import { FanBreakdown } from '@/components/hand/fan-breakdown';
@@ -19,6 +20,8 @@ export interface ReviewConfirmation {
   fan: number;
   breakdown: FanLine[];
   engineVersion: string;
+  /** Tiles changed from the recognised hand; 0 when the hand was typed from scratch. */
+  corrections: number;
 }
 
 export interface ReviewScreenProps {
@@ -33,6 +36,16 @@ export interface ReviewScreenProps {
   onEnterFanDirectly: () => void;
   onBack: () => void;
   submitting?: boolean;
+  /** A recognised hand to start from (melds exposed, no winning tile; ADR-46). */
+  initialDraft?: HandDraft;
+  /** Tiles the photo reader flagged, highlighted until the tile list changes (ADR-45). */
+  initialUncertain?: UncertainTiles;
+  /** Non-blocking notes from recognition, e.g. an unexpected tile count. */
+  warnings?: string[];
+  /** Why the photo could not be read; the manual picker is the way forward (ADR-49). */
+  notice?: string;
+  /** Object URL of the photo, shown for reference. Owned and revoked by the caller. */
+  photoUrl?: string;
 }
 
 /**
@@ -50,8 +63,26 @@ export function ReviewScreen({
   onEnterFanDirectly,
   onBack,
   submitting = false,
+  initialDraft,
+  initialUncertain,
+  warnings = [],
+  notice,
+  photoUrl,
 }: ReviewScreenProps) {
-  const [draft, setDraft] = useState<HandDraft>(() => emptyDraft(discarder === undefined));
+  const [start] = useState<HandDraft>(() => initialDraft ?? emptyDraft(discarder === undefined));
+  const [draft, setDraft] = useState<HandDraft>(start);
+  const [uncertain, setUncertain] = useState<UncertainTiles | undefined>(initialUncertain);
+
+  // Highlights are positions, so adding or removing a tile makes them unreliable: drop them then.
+  const change = (next: HandDraft): void => {
+    const shifted =
+      next.concealed.length !== draft.concealed.length ||
+      next.bonus.length !== draft.bonus.length ||
+      next.melds.length !== draft.melds.length ||
+      next.melds.some((m, i) => m.tiles.length !== draft.melds[i]?.tiles.length);
+    if (shifted) setUncertain(undefined);
+    setDraft(next);
+  };
 
   const hand = useMemo(() => draftToHand(draft), [draft]);
   const result: ScoreResult | null = useMemo(
@@ -75,14 +106,42 @@ export function ReviewScreen({
       fan: result.scoredFan,
       breakdown: result.breakdown,
       engineVersion: ENGINE_VERSION,
+      corrections: countCorrections(start, draft),
     });
   };
 
   return (
     <div className="flex flex-col gap-6">
-      <HandEditor draft={draft} onChange={setDraft} />
-      <MeldEditor draft={draft} onChange={setDraft} />
-      <FlagsPanel draft={draft} onChange={setDraft} />
+      {notice && (
+        <p role="status" className="text-sm">
+          {notice}
+        </p>
+      )}
+      {uncertain &&
+        (uncertain.concealed.size > 0 || uncertain.melds.size > 0 || uncertain.bonus.size > 0) && (
+          <p role="status" className="text-sm">
+            Tiles outlined in amber were hard to read. Check them against the photo.
+          </p>
+        )}
+      {warnings.length > 0 && (
+        <ul className="text-muted-foreground list-disc pl-5 text-sm">
+          {warnings.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
+      )}
+      {photoUrl && (
+        // A blob object URL held in memory only (PD-27); next/image cannot optimise it.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoUrl}
+          alt="Photo of your hand, for reference"
+          className="border-border max-h-48 w-full rounded-md border object-contain"
+        />
+      )}
+      <HandEditor draft={draft} onChange={change} uncertain={uncertain} />
+      <MeldEditor draft={draft} onChange={change} uncertain={uncertain?.melds} />
+      <FlagsPanel draft={draft} onChange={change} />
 
       {result === null ? (
         <p role="status" className="text-muted-foreground text-sm">

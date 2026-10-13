@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Seat } from '@/lib/tiles';
+import type { HandDraft } from '@/lib/game';
+import {
+  draftFromRecognition,
+  failureMessage,
+  type RecognitionResult,
+  type RecognizeErrorCode,
+  type UncertainTiles,
+} from '@/lib/recognition';
 import { basePointsFor, settle } from '@/lib/scoring';
 import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
 import { Button } from '@/components/ui/button';
+import { CameraCapture } from '@/components/hand/camera-capture';
 import { WinnerPicker, type WinnerPickerResult } from '@/components/hand/winner-picker';
 import { ReviewScreen, type ReviewConfirmation } from '@/components/hand/review-screen';
 import { ManualFanEntry } from '@/components/hand/manual-fan-entry';
@@ -14,14 +23,23 @@ import { PaymentsPreview } from '@/components/hand/payments-preview';
 
 const SEATS: readonly Seat[] = [0, 1, 2, 3];
 
+/** What the camera step handed to the review screen. Empty when the player skipped it. */
+interface Recognition {
+  photoUrl?: string;
+  draft?: HandDraft;
+  uncertain?: UncertainTiles;
+  warnings: string[];
+  notice?: string;
+}
+
 export interface HandClientProps {
   gameId: string;
 }
 
 /**
  * The `/game/[gameId]/hand` flow (PD-09, PD-13, PD-14): tap the winner, then
- * self-drawn/discard, then (for a discard) the discarder, then build the hand
- * on the tile review screen (or enter fan directly) and review the payments before an explicit Confirm, which
+ * self-drawn/discard, then (for a discard) the discarder, then photograph the hand (or skip),
+ * then build or check the hand on the tile review screen (or enter fan directly) and review the payments before an explicit Confirm, which
  * is the only thing that appends a `HandWon` event. A Draw button appends
  * `HandDrawn` after its own confirmation. Cancelling at any point before that
  * appends nothing and returns to the table. A refused or failed write keeps
@@ -42,7 +60,11 @@ export function HandClient({ gameId }: HandClientProps) {
   const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   const [selection, setSelection] = useState<WinnerPickerResult | null>(null);
   const [fan, setFan] = useState(0);
-  const [entry, setEntry] = useState<'tiles' | 'fan'>('tiles');
+  const [entry, setEntry] = useState<'camera' | 'tiles' | 'fan'>('camera');
+  const [recognition, setRecognition] = useState<Recognition>({ warnings: [] });
+  const [reviewKey, setReviewKey] = useState(0);
+  const startedAt = useRef<number>(0);
+  const photoUrl = useRef<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmingDraw, setConfirmingDraw] = useState(false);
@@ -65,6 +87,16 @@ export function HandClient({ gameId }: HandClientProps) {
       cancelled = true;
     };
   }, [gameId, loadGame]);
+
+  /** The photo lives only as an object URL in memory (PD-27); release it as soon as it is not needed. */
+  const releasePhoto = (): void => {
+    if (photoUrl.current) {
+      URL.revokeObjectURL(photoUrl.current);
+      photoUrl.current = undefined;
+    }
+  };
+
+  useEffect(() => releasePhoto, []);
 
   const playerIdsKey = state.playerIds.join(',');
 
@@ -102,17 +134,39 @@ export function HandClient({ gameId }: HandClientProps) {
   };
 
   const handleWinnerComplete = (result: WinnerPickerResult): void => {
+    releasePhoto();
+    startedAt.current = Date.now();
     setSelection(result);
-    setEntry('tiles');
+    setRecognition({ warnings: [] });
+    setEntry('camera');
     setFan(0);
     setSubmitError(null);
   };
 
   const handleBackToWinner = (): void => {
+    releasePhoto();
     setSelection(null);
-    setEntry('tiles');
+    setRecognition({ warnings: [] });
+    setEntry('camera');
     setFan(0);
     setSubmitError(null);
+  };
+
+  const openReview = (next: Recognition): void => {
+    photoUrl.current = next.photoUrl;
+    setRecognition(next);
+    setReviewKey((k) => k + 1);
+    setEntry('tiles');
+  };
+
+  const handleRecognized = (result: RecognitionResult, url: string): void => {
+    if (!selection) return;
+    const built = draftFromRecognition(result, selection.discarder === undefined);
+    openReview({ photoUrl: url, ...built });
+  };
+
+  const handleCameraFailure = (code: RecognizeErrorCode, url: string): void => {
+    openReview({ photoUrl: url, warnings: [], notice: failureMessage(code) });
   };
 
   /** A refused action resolves false and leaves its reason in the store's error. */
@@ -126,6 +180,8 @@ export function HandClient({ gameId }: HandClientProps) {
       const appended = await recordWin({
         winner: selection.winner,
         discarder: selection.discarder,
+        method: recognition.draft ? 'photo' : 'manual',
+        startedAt: startedAt.current || undefined,
         ...win,
       });
       if (!appended) {
@@ -291,20 +347,46 @@ export function HandClient({ gameId }: HandClientProps) {
             .
           </p>
 
-          <div hidden={entry !== 'tiles'}>
-            <ReviewScreen
-              winner={selection.winner}
-              discarder={selection.discarder}
-              dealer={state.dealer}
-              prevailing={state.prevailing}
-              ruleset={ruleset}
-              seatLabel={seatLabel}
-              onConfirm={handleReviewConfirm}
-              onEnterFanDirectly={() => setEntry('fan')}
-              onBack={handleBackToWinner}
-              submitting={submitting}
-            />
-          </div>
+          {entry === 'camera' && (
+            <>
+              <CameraCapture
+                onRecognized={handleRecognized}
+                onFailure={handleCameraFailure}
+                onSkip={() => openReview({ warnings: [] })}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBackToWinner}
+                className="h-12 px-4 text-base"
+              >
+                Back
+              </Button>
+            </>
+          )}
+
+          {entry !== 'camera' && (
+            <div hidden={entry !== 'tiles'}>
+              <ReviewScreen
+                key={reviewKey}
+                winner={selection.winner}
+                discarder={selection.discarder}
+                dealer={state.dealer}
+                prevailing={state.prevailing}
+                ruleset={ruleset}
+                seatLabel={seatLabel}
+                onConfirm={handleReviewConfirm}
+                onEnterFanDirectly={() => setEntry('fan')}
+                onBack={handleBackToWinner}
+                submitting={submitting}
+                initialDraft={recognition.draft}
+                initialUncertain={recognition.uncertain}
+                warnings={recognition.warnings}
+                notice={recognition.notice}
+                photoUrl={recognition.photoUrl}
+              />
+            </div>
+          )}
 
           {entry === 'fan' && (
             <>

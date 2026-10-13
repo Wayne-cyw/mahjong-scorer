@@ -50,9 +50,15 @@ function mockStoreState(
   Object.assign(vi.mocked(useGameStore), { getState: () => storeValue });
 }
 
+/** The camera step sits between the winner/discarder steps and the review screen. */
+function skipCamera(): void {
+  fireEvent.click(screen.getByRole('button', { name: /skip, enter manually/i }));
+}
+
 async function pickSelfDrawWinner(): Promise<void> {
   fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
   fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
+  skipCamera();
   fireEvent.click(screen.getByRole('button', { name: /enter fan directly/i }));
 }
 
@@ -60,6 +66,7 @@ async function pickDiscardWinner(discarderSeatLabel: string): Promise<void> {
   fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
   fireEvent.click(screen.getByRole('button', { name: /discard/i }));
   fireEvent.click(screen.getByRole('button', { name: discarderSeatLabel }));
+  skipCamera();
   fireEvent.click(screen.getByRole('button', { name: /enter fan directly/i }));
 }
 
@@ -89,7 +96,10 @@ describe('HandClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
     fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
 
-    // Straight to the review step: no discarder buttons, no "who discarded" prompt.
+    // Straight to the camera step: no discarder buttons, no "who discarded" prompt.
+    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+    expect(screen.queryByText(/who discarded/i)).not.toBeInTheDocument();
+    skipCamera();
     expect(screen.getByRole('button', { name: /enter fan directly/i })).toBeInTheDocument();
     expect(screen.queryByText(/who discarded/i)).not.toBeInTheDocument();
   });
@@ -150,7 +160,13 @@ describe('HandClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
 
     await vi.waitFor(() => expect(recordWin).toHaveBeenCalledTimes(1));
-    expect(recordWin).toHaveBeenCalledWith({ winner: 0, discarder: 2, fan: ruleset.minFan + 1 });
+    expect(recordWin).toHaveBeenCalledWith({
+      winner: 0,
+      discarder: 2,
+      fan: ruleset.minFan + 1,
+      method: 'manual',
+      startedAt: expect.any(Number),
+    });
   });
 
   it('calls recordWin with no discarder for a self-drawn win', async () => {
@@ -166,6 +182,8 @@ describe('HandClient', () => {
       winner: 0,
       discarder: undefined,
       fan: ruleset.minFan,
+      method: 'manual',
+      startedAt: expect.any(Number),
     });
   });
 
@@ -174,6 +192,7 @@ describe('HandClient', () => {
     await screen.findByRole('button', { name: 'Player 1' });
     fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
     fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
+    skipCamera();
 
     const hand = screen.getByRole('region', { name: 'Hand' });
     const codes = [

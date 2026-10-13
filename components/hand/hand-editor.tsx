@@ -11,6 +11,8 @@ import { TilePicker } from '@/components/tiles/tile-picker';
 export interface HandEditorProps {
   draft: HandDraft;
   onChange: (draft: HandDraft) => void;
+  /** Positions the photo reader was unsure of, shown with the uncertain highlight. */
+  uncertain?: { concealed: ReadonlySet<number>; bonus: ReadonlySet<number> };
 }
 
 type TapMode = 'winning' | 'remove';
@@ -24,7 +26,7 @@ const label = (code: TileCode | Bonus): string => {
  * Edits the concealed tiles and bonus tiles of a draft: tap a tile in the picker to add it, then
  * tap a tile in the hand to mark it as the winning tile (or remove it, in remove mode).
  */
-export function HandEditor({ draft, onChange }: HandEditorProps) {
+export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
   const [mode, setMode] = useState<TapMode>('winning');
 
   const used: (TileCode | Bonus)[] = [
@@ -68,10 +70,11 @@ export function HandEditor({ draft, onChange }: HandEditorProps) {
             {draft.concealed.map((code, i) => {
               const isWinning = draft.winningTile === code;
               const action = mode === 'remove' ? 'Remove' : 'Mark';
+              const hard = uncertain?.concealed.has(i) ? ' (hard to read)' : '';
               const name =
                 mode === 'remove'
-                  ? `Remove ${label(code)}`
-                  : `${action} ${label(code)} as winning tile`;
+                  ? `Remove ${label(code)}${hard}`
+                  : `${action} ${label(code)}${hard} as winning tile`;
               return (
                 <li key={`${code}-${i}`}>
                   <button
@@ -90,7 +93,13 @@ export function HandEditor({ draft, onChange }: HandEditorProps) {
                     <Tile
                       code={code}
                       size="md"
-                      state={isWinning ? 'selected' : 'normal'}
+                      state={
+                        isWinning
+                          ? 'selected'
+                          : uncertain?.concealed.has(i)
+                            ? 'uncertain'
+                            : 'normal'
+                      }
                       decorative
                     />
                   </button>
@@ -106,15 +115,20 @@ export function HandEditor({ draft, onChange }: HandEditorProps) {
         <div className="flex flex-col gap-2">
           <h3 className="text-muted-foreground text-sm font-medium">Flowers and seasons 花</h3>
           <ul className="flex flex-wrap gap-2">
-            {draft.bonus.map((code) => (
+            {draft.bonus.map((code, i) => (
               <li key={code}>
                 <button
                   type="button"
-                  aria-label={`Remove ${label(code)}`}
+                  aria-label={`Remove ${label(code)}${uncertain?.bonus.has(i) ? ' (hard to read)' : ''}`}
                   onClick={() => onChange(removeTile(draft, code))}
                   className="focus-visible:ring-ring/50 flex min-h-12 min-w-12 items-center justify-center rounded-md p-1 focus-visible:ring-[3px] focus-visible:outline-none"
                 >
-                  <Tile code={code} size="md" decorative />
+                  <Tile
+                    code={code}
+                    size="md"
+                    state={uncertain?.bonus.has(i) ? 'uncertain' : 'normal'}
+                    decorative
+                  />
                 </button>
               </li>
             ))}

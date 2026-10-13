@@ -12,6 +12,8 @@ import { TilePicker } from '@/components/tiles/tile-picker';
 export interface MeldEditorProps {
   draft: HandDraft;
   onChange: (draft: HandDraft) => void;
+  /** `"<meld index>:<tile index>"` positions the photo reader was unsure of. */
+  uncertain?: ReadonlySet<string>;
 }
 
 type Kind = Meld['kind'];
@@ -42,7 +44,7 @@ const meldName = (meld: Meld): string =>
  * Declared melds and kongs: add one by choosing its kind and tapping its tile (for a chow, the
  * lowest tile), flip exposed/concealed (matters for kong scoring), or remove it.
  */
-export function MeldEditor({ draft, onChange }: MeldEditorProps) {
+export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
   const [adding, setAdding] = useState<Kind | null>(null);
 
   const pick = (code: TileCode | Bonus): void => {
@@ -66,9 +68,21 @@ export function MeldEditor({ draft, onChange }: MeldEditorProps) {
               key={`${meld.kind}-${meld.tiles.join('')}-${i}`}
               className="flex flex-wrap items-center gap-2 rounded-md border p-2"
             >
-              <span className="flex gap-1" role="img" aria-label={meldName(meld)}>
+              <span
+                className="flex gap-1"
+                role="img"
+                aria-label={`${meldName(meld)}${
+                  meld.tiles.some((_, j) => uncertain?.has(`${i}:${j}`)) ? ' (hard to read)' : ''
+                }`}
+              >
                 {meld.tiles.map((t, j) => (
-                  <Tile key={j} code={t} size="sm" decorative />
+                  <Tile
+                    key={j}
+                    code={t}
+                    size="sm"
+                    state={uncertain?.has(`${i}:${j}`) ? 'uncertain' : 'normal'}
+                    decorative
+                  />
                 ))}
               </span>
               <Button
