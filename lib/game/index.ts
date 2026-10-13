@@ -34,3 +34,16 @@ export {
   type RematchPlan,
   type StandingRow,
 } from './standings';
+export {
+  addMeld,
+  addTile,
+  draftToHand,
+  emptyDraft,
+  removeMeld,
+  removeTile,
+  setFlag,
+  setWinningTile,
+  toggleMeldExposed,
+  type HandDraft,
+  type HandFlag,
+} from './hand-draft';
