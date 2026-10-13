@@ -41,6 +41,8 @@ async function recordWin(
     await page.getByRole('button', { name: 'Discard', exact: true }).click();
     await page.getByRole('button', { name: discarder, exact: true }).click();
   }
+  // The tile review screen is the default; the manual flow sits behind this button.
+  await page.getByRole('button', { name: 'Enter fan directly' }).click();
   for (let i = 0; i < fan; i++) await page.getByRole('button', { name: 'Increase fan' }).click();
   await page.getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Hand over' })).toBeVisible();
