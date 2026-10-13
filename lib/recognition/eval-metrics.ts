@@ -2,16 +2,31 @@ import { z } from 'zod';
 import { bonusSchema, tileSchema } from '@/lib/tiles';
 
 /** One entry of `labels.json`: the tiles actually in a photo, plus optional tags for grouping. */
-export const labelsSchema = z.array(
-  z.object({
-    file: z.string().min(1),
-    set: z.string().optional(), // which physical tile set, to check coverage across sets
-    lighting: z.string().optional(), // e.g. bright, dim, warm
-    concealed: z.array(tileSchema),
-    melds: z.array(z.array(tileSchema)),
-    bonus: z.array(bonusSchema),
-  }),
-);
+export const labelsSchema = z
+  .array(
+    z.object({
+      file: z.string().min(1),
+      set: z.string().optional(), // which physical tile set, to check coverage across sets
+      lighting: z.string().optional(), // e.g. bright, dim, warm
+      concealed: z.array(tileSchema),
+      melds: z.array(z.array(tileSchema)),
+      bonus: z.array(bonusSchema),
+    }),
+  )
+  .superRefine((labels, ctx) => {
+    // A photo listed twice would be counted twice and flatter or sink the totals.
+    const seen = new Set<string>();
+    labels.forEach((label, index) => {
+      if (seen.has(label.file)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [index, 'file'],
+          message: `Duplicate entry for ${label.file}`,
+        });
+      }
+      seen.add(label.file);
+    });
+  });
 
 export type Label = z.infer<typeof labelsSchema>[number];
 
@@ -92,6 +107,8 @@ export interface Summary {
   tileAccuracy: number;
   /** Share of photos where no tile had to be changed. */
   zeroCorrectionRate: number;
+  /** Over photos the model answered. Failures are excluded: an instant 4xx or a missing file
+   *  would flatter the percentiles, and a timeout would inflate them. Count them via `failures`. */
   latencyP50: number;
   latencyP95: number;
   /** Average estimated cost in US dollars over photos that report token usage. */
@@ -117,7 +134,7 @@ export function summarize(outcomes: readonly PhotoOutcome[], prices: Prices): Su
       failures.push({ file: o.file, error: o.error });
     }
   }
-  const latencies = outcomes.map((o) => o.latencyMs);
+  const latencies = outcomes.flatMap((o) => (o.ok ? [o.latencyMs] : []));
   return {
     photos: outcomes.length,
     tileAccuracy: denominator === 0 ? Number.NaN : matched / denominator,

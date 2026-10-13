@@ -126,6 +126,27 @@ describe('summarize', () => {
     expect(s.costPerHand).toBeCloseTo((0.00205 + 0.00295) / 2);
   });
 
+  it('leaves failed photos out of the latency percentiles', () => {
+    const s = summarize(
+      [
+        ok({ latencyMs: 2000 }),
+        ok({ latencyMs: 3000 }),
+        {
+          ok: false,
+          file: 'missing.jpg',
+          expected: 14,
+          latencyMs: 1,
+          error: 'photo file not found',
+        },
+        { ok: false, file: 'slow.jpg', expected: 14, latencyMs: 20000, error: 'timeout' },
+      ],
+      prices,
+    );
+    expect(s.latencyP50).toBe(2000);
+    expect(s.latencyP95).toBe(3000);
+    expect(s.failures).toHaveLength(2);
+  });
+
   it('is well-defined with no photos', () => {
     const s = summarize([], prices);
     expect(s.photos).toBe(0);
@@ -162,6 +183,13 @@ describe('labelsSchema', () => {
       ),
     );
     expect(labelsSchema.safeParse(raw).success).toBe(true);
+  });
+
+  it('rejects a photo listed twice', () => {
+    const entry = { file: 'a.jpg', concealed: [], melds: [], bonus: [] };
+    const r = labelsSchema.safeParse([entry, { ...entry }]);
+    expect(r.success).toBe(false);
+    expect(r.error?.message).toMatch(/Duplicate entry for a\.jpg/);
   });
 
   it('rejects unknown tile codes and a missing file name', () => {

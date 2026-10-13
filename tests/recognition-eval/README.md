@@ -57,7 +57,9 @@ metadata dropped) before they are sent. Nothing is written to disk.
   meld group a tile was reported in is not scored, because the review screen lets the player fix
   grouping; tile identity is what decides whether they retype anything.
 - **Zero-correction rate**: share of photos where no tile had to be changed.
-- **Latency p50 / p95** per photo, one request at a time, so it reflects a single player.
+- **Latency p50 / p95** per photo the model answered, one request at a time, so it reflects a
+  single player. Failed photos are left out (an instant error would flatter the percentiles, a
+  timeout would inflate them) and are listed separately.
 - **Cost per hand**: estimated from token usage and the prices above. The defaults are Haiku 4.5
   list prices; pass the prices for any other model. Failed requests report no usage and are left
   out of the average.
@@ -69,5 +71,7 @@ this script measures model latency only, not the full phone-to-route round trip.
 ## Exit codes
 
 `0` ran to completion (even if some photos failed; they are listed). `2` could not start: no
-photo folder, no `labels.json`, an invalid `labels.json`, or no `ANTHROPIC_API_KEY`. The message
-says what is missing. `1` an unexpected error stopped the run.
+photo folder, no `labels.json`, a `labels.json` that is not valid JSON or lists a photo twice, a
+bad flag value, or no `ANTHROPIC_API_KEY`. The message says what is missing. `1` the run stopped
+early or hit an unexpected error: after 5 photos in a row fail with `upstream` (usually a rate
+limit, an invalid key or an outage) it stops and reports what it has.
