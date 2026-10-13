@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initialState } from '@/lib/game';
 import type { GameState } from '@/lib/game';
@@ -58,6 +58,14 @@ describe('GameClient', () => {
 
     expect(await screen.findByRole('button', { name: /end game/i })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Game is not in progress');
+  });
+
+  it('goes to the summary screen once the game is ended', async () => {
+    mockStore({ ...playingState, status: 'complete' });
+    render(<GameClient gameId="game-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /end game/i }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/game/game-1/summary'));
   });
 
   it('shows a full-screen error with a way home when loading the game fails', async () => {

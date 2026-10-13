@@ -27,3 +27,10 @@ export {
   type GameState,
 } from './reducer';
 export { deriveHistory, previewEdit, type HandRecord, type PreviewEditResult } from './history';
+export {
+  computeStandings,
+  planRematch,
+  startingPointsOf,
+  type RematchPlan,
+  type StandingRow,
+} from './standings';
