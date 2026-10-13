@@ -5,12 +5,12 @@
 export function LayoutGuide() {
   return (
     <figure aria-label="How to lay out your hand" className="flex flex-col gap-2">
-      <div className="border-border bg-muted/40 flex gap-3 rounded-lg border p-3">
+      <div className="bg-felt-raised flex gap-3 rounded-md p-3">
         <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-col gap-1">
             <div className="flex gap-1" aria-hidden="true">
               {Array.from({ length: 10 }, (_, i) => (
-                <span key={i} className="bg-foreground/20 h-8 flex-1 rounded-sm" />
+                <span key={i} className="bg-ivory h-8 flex-1 rounded-sm" />
               ))}
             </div>
             <span className="text-sm">Concealed tiles in one row, left to right</span>
@@ -20,7 +20,7 @@ export function LayoutGuide() {
               {Array.from({ length: 3 }, (_, g) => (
                 <div key={g} className="flex flex-1 gap-1">
                   {Array.from({ length: 3 }, (_, i) => (
-                    <span key={i} className="bg-foreground/20 h-8 flex-1 rounded-sm" />
+                    <span key={i} className="bg-ivory h-8 flex-1 rounded-sm" />
                   ))}
                 </div>
               ))}
@@ -31,13 +31,13 @@ export function LayoutGuide() {
         <div className="flex w-14 flex-col gap-1">
           <div className="flex flex-wrap gap-1" aria-hidden="true">
             {Array.from({ length: 4 }, (_, i) => (
-              <span key={i} className="bg-foreground/20 h-8 w-6 rounded-sm" />
+              <span key={i} className="bg-ivory h-8 w-6 rounded-sm" />
             ))}
           </div>
           <span className="text-sm">Flowers to the side</span>
         </div>
       </div>
-      <figcaption className="text-muted-foreground text-sm">
+      <figcaption className="text-ivory-dim text-sm">
         Good light, all tiles face up, nothing overlapping.
       </figcaption>
     </figure>

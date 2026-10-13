@@ -60,13 +60,13 @@ export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
 
   return (
     <section aria-label="Melds" className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">Melds and kongs 碰槓</h2>
+      <h2 className="font-display text-xl font-black">Melds and kongs 碰槓</h2>
       {draft.melds.length > 0 && (
         <ul className="flex flex-col gap-2">
           {draft.melds.map((meld, i) => (
             <li
               key={`${meld.kind}-${meld.tiles.join('')}-${i}`}
-              className="flex flex-wrap items-center gap-2 rounded-md border p-2"
+              className="bg-felt-raised flex flex-wrap items-center gap-2 rounded-md p-2"
             >
               <span
                 className="flex gap-1"
@@ -126,7 +126,7 @@ export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
 
       {adding !== null && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm">
+          <p className="text-ivory-dim text-base">
             {adding === 'chow' ? 'Tap the lowest tile of the chow.' : 'Tap the tile to meld.'}
           </p>
           <TilePicker hideBonus onPick={pick} />

@@ -32,12 +32,12 @@ export function FlagsPanel({ draft, onChange }: FlagsPanelProps) {
 
   const row = ({ flag, en, zh }: FlagInfo) => (
     <li key={flag}>
-      <label className="flex min-h-12 items-center gap-3 text-base">
+      <label className="has-[:checked]:bg-felt-high bg-felt-raised has-[:focus-visible]:ring-ring/60 flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-3 text-base transition-colors duration-150 has-[:focus-visible]:ring-[3px]">
         <input
           type="checkbox"
           checked={draft.flags[flag] === true}
           onChange={(e) => onChange(setFlag(draft, flag, e.target.checked))}
-          className="size-6"
+          className="accent-sign size-6"
         />
         <span>
           {en} <span lang="zh-Hant">{zh}</span>
@@ -47,11 +47,11 @@ export function FlagsPanel({ draft, onChange }: FlagsPanelProps) {
   );
 
   return (
-    <section aria-label="Situations" className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold">Situation 情況</h2>
-      <ul className="flex flex-col">{COMMON.map(row)}</ul>
+    <section aria-label="Situations" className="flex flex-col gap-3">
+      <h2 className="font-display text-xl font-black">Situation 情況</h2>
+      <ul className="flex flex-col gap-2">{COMMON.map(row)}</ul>
       {showMore ? (
-        <ul className="flex flex-col">{RARE.map(row)}</ul>
+        <ul className="flex flex-col gap-2">{RARE.map(row)}</ul>
       ) : (
         <Button
           type="button"

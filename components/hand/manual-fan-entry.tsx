@@ -20,21 +20,21 @@ export function ManualFanEntry({ fan, minFan, capFan, onChange }: ManualFanEntry
   const belowMinimum = fan < minFan;
 
   return (
-    <section aria-label="Fan" className="flex flex-col gap-2">
-      <div className="flex items-center gap-4">
+    <section aria-label="Fan" className="bg-felt-raised flex flex-col gap-3 rounded-md p-4">
+      <div className="flex items-center justify-between gap-4">
         <Button
           type="button"
           variant="outline"
           onClick={decrement}
           disabled={fan <= 0}
           aria-label="Decrease fan"
-          className="h-12 w-12 px-0 text-xl"
+          className="h-14 w-14 px-0 text-2xl"
         >
           −
         </Button>
         <span
           data-testid="fan-value"
-          className="min-w-[3ch] text-center text-3xl font-bold tabular-nums"
+          className="numerals min-w-[3ch] text-center text-6xl leading-none"
         >
           {fan}
         </span>
@@ -44,14 +44,27 @@ export function ManualFanEntry({ fan, minFan, capFan, onChange }: ManualFanEntry
           onClick={increment}
           disabled={fan >= capFan}
           aria-label="Increase fan"
-          className="h-12 w-12 px-0 text-xl"
+          className="h-14 w-14 px-0 text-2xl"
         >
           +
         </Button>
-        <span className="text-muted-foreground text-sm">fan</span>
       </div>
+      <div className="flex gap-1" aria-hidden="true">
+        {Array.from({ length: capFan }, (_, i) => (
+          <span
+            key={i}
+            style={{ transitionDelay: `${i * 18}ms` }}
+            className={
+              i < fan
+                ? 'bg-sign h-3 flex-1 rounded-sm transition-colors duration-200'
+                : 'bg-felt-deep h-3 flex-1 rounded-sm transition-colors duration-200'
+            }
+          />
+        ))}
+      </div>
+      <p className="text-ivory-dim text-sm">fan · cap {capFan}</p>
       {belowMinimum && (
-        <p className="text-muted-foreground text-sm">Needs at least {minFan} fan to win.</p>
+        <p className="text-ivory-dim text-sm">Needs at least {minFan} fan to win.</p>
       )}
     </section>
   );

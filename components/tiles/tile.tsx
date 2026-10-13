@@ -22,8 +22,8 @@ export interface TileProps {
 
 const STATE_CLASS: Record<TileState, string> = {
   normal: '',
-  uncertain: 'rounded-md ring-2 ring-amber-500 ring-offset-1',
-  selected: 'rounded-md ring-2 ring-blue-600 ring-offset-1',
+  uncertain: 'ring-2 ring-amber-400 ring-offset-1 ring-offset-felt',
+  selected: '-translate-y-2 ring-2 ring-ivory ring-offset-1 ring-offset-felt',
 };
 
 /** One tile drawn from the generated sprite (`public/tiles.svg`). */
@@ -41,7 +41,11 @@ export function Tile({ code, size = 'md', state = 'normal', decorative, classNam
       aria-label={decorative ? undefined : label}
       aria-hidden={decorative ? true : undefined}
       data-state={state}
-      className={cn('shrink-0', STATE_CLASS[state], className)}
+      className={cn(
+        'border-jade shrink-0 rounded-[9px] border-b-[5px] transition-transform duration-200',
+        STATE_CLASS[state],
+        className,
+      )}
     >
       <use href={`/tiles.svg#${code}`} />
     </svg>
