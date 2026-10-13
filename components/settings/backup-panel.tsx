@@ -71,7 +71,7 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
 
   return (
     <section aria-label="Backup" className="flex flex-col gap-3">
-      <h2 className="text-xl font-semibold">Backup</h2>
+      <h2 className="font-display text-xl font-black">Backup</h2>
       <Button
         type="button"
         variant="outline"
@@ -80,7 +80,7 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
       >
         Export backup
       </Button>
-      <label className="flex min-h-12 flex-col gap-1 text-base">
+      <label className="text-ivory-dim flex min-h-12 flex-col gap-1 text-base">
         Import backup
         <input
           type="file"
@@ -89,12 +89,12 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
             void handleImport(e.target.files?.[0]);
             e.target.value = '';
           }}
-          className="min-h-12 text-base file:mr-3 file:h-12 file:px-4"
+          className="text-foreground file:bg-felt-raised min-h-12 text-base file:mr-3 file:h-12 file:rounded-md file:border-0 file:px-4 file:font-bold"
         />
       </label>
       {message && <p role="status">{message}</p>}
       {error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
           {error}
         </p>
       )}
