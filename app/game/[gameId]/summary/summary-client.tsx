@@ -10,6 +10,7 @@ import { computeStandings, planRematch, startingPointsOf } from '@/lib/game';
 import { DEFAULT_PRESET_ID } from '@/lib/scoring';
 import type { Seat } from '@/lib/tiles';
 import { useGameStore } from '@/stores/game-store';
+import { StatusScreen } from '@/components/hk/status-screen';
 
 export interface SummaryClientProps {
   gameId: string;
@@ -64,22 +65,22 @@ export function SummaryClient({ gameId }: SummaryClientProps) {
   // createGame swaps the shared store to the new game, so stop rendering standings from it.
   if (loading || rematching) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <StatusScreen>
         <p>{rematching ? 'Starting rematch…' : 'Loading standings…'}</p>
-      </main>
+      </StatusScreen>
     );
   }
 
   if (loadFailed || events.length === 0 || startingPoints === null) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+      <StatusScreen>
         <p role="alert">
           {loadFailed ? (storeError ?? 'Could not load this game.') : 'Game not found.'}
         </p>
         <Button type="button" onClick={() => router.push('/')} className="h-12 px-6 text-base">
           Home
         </Button>
-      </main>
+      </StatusScreen>
     );
   }
 
@@ -126,7 +127,7 @@ export function SummaryClient({ gameId }: SummaryClientProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <Standings
         rows={rows}
         final={state.status === 'ended' || state.status === 'complete'}
