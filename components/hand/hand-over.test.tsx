@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initialState } from '@/lib/game';
+import { tileName, type Tile } from '@/lib/tiles';
 import type { GameState } from '@/lib/game';
 import { basePointsFor, getPreset, settle } from '@/lib/scoring';
 import type { GameStoreState } from '@/stores/game-store';
@@ -52,12 +53,14 @@ function mockStoreState(
 async function pickSelfDrawWinner(): Promise<void> {
   fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
   fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
+  fireEvent.click(screen.getByRole('button', { name: /enter fan directly/i }));
 }
 
 async function pickDiscardWinner(discarderSeatLabel: string): Promise<void> {
   fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
   fireEvent.click(screen.getByRole('button', { name: /discard/i }));
   fireEvent.click(screen.getByRole('button', { name: discarderSeatLabel }));
+  fireEvent.click(screen.getByRole('button', { name: /enter fan directly/i }));
 }
 
 function clickIncrement(times: number): void {
@@ -86,8 +89,8 @@ describe('HandClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
     fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
 
-    // Straight to the fan entry step: no discarder buttons, no "who discarded" prompt.
-    expect(screen.getByTestId('fan-value')).toBeInTheDocument();
+    // Straight to the review step: no discarder buttons, no "who discarded" prompt.
+    expect(screen.getByRole('button', { name: /enter fan directly/i })).toBeInTheDocument();
     expect(screen.queryByText(/who discarded/i)).not.toBeInTheDocument();
   });
 
@@ -164,6 +167,48 @@ describe('HandClient', () => {
       discarder: undefined,
       fan: ruleset.minFan,
     });
+  });
+
+  it('records a tile-reviewed win with its hand, scored fan and engine version', async () => {
+    render(<HandClient gameId="game-1" />);
+    await screen.findByRole('button', { name: 'Player 1' });
+    fireEvent.click(screen.getByRole('button', { name: 'Player 1' }));
+    fireEvent.click(screen.getByRole('button', { name: /self-drawn/i }));
+
+    const hand = screen.getByRole('region', { name: 'Hand' });
+    const codes = [
+      'm1',
+      'm2',
+      'm3',
+      'p4',
+      'p5',
+      'p6',
+      's7',
+      's8',
+      's9',
+      'z5',
+      'z5',
+      'z5',
+      'z7',
+      'z7',
+    ];
+    for (const code of codes) {
+      const n = tileName(code as Tile);
+      fireEvent.click(within(hand).getByRole('button', { name: `${n.en} ${n.zh}` }));
+    }
+    const [winning] = screen.getAllByRole('button', {
+      name: /^Mark Red Dragon .* as winning tile$/,
+    });
+    if (winning) fireEvent.click(winning);
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    await vi.waitFor(() => expect(recordWin).toHaveBeenCalledTimes(1));
+    const arg = recordWin.mock.calls[0]?.[0];
+    expect(arg).toMatchObject({ winner: 0, discarder: undefined });
+    expect(arg.hand.winningTile).toBe('z7');
+    expect(arg.fan).toBeGreaterThanOrEqual(ruleset.minFan);
+    expect(arg.breakdown.length).toBeGreaterThan(0);
+    expect(arg.engineVersion).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it('appends nothing when the flow is cancelled', async () => {
