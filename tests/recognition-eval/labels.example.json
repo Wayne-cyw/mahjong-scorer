@@ -1,0 +1,33 @@
+[
+  {
+    "file": "set-a-bright-01.jpg",
+    "set": "set-a",
+    "lighting": "bright",
+    "concealed": ["m1", "m2", "m3", "p4", "p5", "p6", "s7", "s8", "s9", "z5", "z5"],
+    "melds": [["z1", "z1", "z1"]],
+    "bonus": ["f1"]
+  },
+  {
+    "file": "set-b-dim-02.jpg",
+    "set": "set-b",
+    "lighting": "dim",
+    "concealed": [
+      "m1",
+      "m1",
+      "m1",
+      "p4",
+      "p4",
+      "p4",
+      "s7",
+      "s7",
+      "s7",
+      "z7",
+      "z7",
+      "z7",
+      "z1",
+      "z1"
+    ],
+    "melds": [],
+    "bonus": []
+  }
+]
