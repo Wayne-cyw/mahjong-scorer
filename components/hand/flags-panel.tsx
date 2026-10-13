@@ -37,7 +37,7 @@ export function FlagsPanel({ draft, onChange }: FlagsPanelProps) {
           type="checkbox"
           checked={draft.flags[flag] === true}
           onChange={(e) => onChange(setFlag(draft, flag, e.target.checked))}
-          className="accent-sign size-6"
+          className="bg-felt-deep checked:bg-sign relative size-7 shrink-0 appearance-none rounded-sm transition-colors duration-150 after:absolute after:inset-0 after:grid after:place-items-center after:text-lg after:font-black after:text-[#1b1403] after:opacity-0 after:content-['✓'] checked:after:opacity-100"
         />
         <span>
           {en} <span lang="zh-Hant">{zh}</span>

@@ -44,8 +44,8 @@
   --ring: var(--sign);
 
   --font-display-stack:
-    'Noto Serif TC', 'Songti TC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'STSong', 'PMingLiU',
-    serif;
+    'Noto Serif TC', 'Songti SC', 'Songti TC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'STSong',
+    'PMingLiU', serif;
   --font-text-stack:
     -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Microsoft JhengHei',
     'Noto Sans TC', system-ui, sans-serif;

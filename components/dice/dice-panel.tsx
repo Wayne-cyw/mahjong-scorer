@@ -63,7 +63,7 @@ export function DicePanel() {
   return (
     <section aria-label="Dice" className="bg-felt-raised flex flex-col gap-4 rounded-md p-4">
       <div className="flex items-stretch gap-3">
-        <div className="bg-felt-deep flex min-h-[5.5rem] flex-1 items-center justify-center gap-2.5 rounded-md">
+        <div className="bg-felt-deep flex min-h-[5.5rem] flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md">
           {dice.length === 3 ? (
             dice.map((value, i) => (
               <Die key={`${throws}-${i}`} value={value} index={i} tumble={throws > 0} />
