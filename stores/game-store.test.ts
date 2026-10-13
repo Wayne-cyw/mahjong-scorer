@@ -4,7 +4,10 @@ import { appendEvent, getDb, loadEvents } from '@/lib/db';
 import { basePointsFor, getPreset, settle } from '@/lib/scoring';
 import { deriveHistory, initialState, nextSeat, replay } from '@/lib/game';
 import type { Seat } from '@/lib/tiles';
+import { analytics } from '@/lib/analytics/analytics';
 import { useGameStore } from './game-store';
+
+vi.mock('@/lib/analytics/analytics', () => ({ analytics: { capture: vi.fn() } }));
 
 const ruleset = getPreset('hk-discarder-pays'); // minFan 3, capFan 10, discarder pays
 
@@ -444,5 +447,118 @@ describe('action results', () => {
       useGameStore.getState().recordWin({ winner: 0, discarder: 1, fan: ruleset.minFan }),
     ).resolves.toBe(false);
     await expect(useGameStore.getState().endGame('completed')).resolves.toBe(true);
+  });
+});
+
+describe('analytics events', () => {
+  const capture = vi.mocked(analytics.capture);
+
+  beforeEach(() => capture.mockClear());
+
+  it('emits game_started once the game leaves setup, not on creation or a refused action', async () => {
+    await useGameStore
+      .getState()
+      .createGame({ playerNames: ['Alice', 'Bob', 'Cara', 'Dee'], presetId: ruleset.id });
+    expect(capture).not.toHaveBeenCalled();
+
+    // Refused: recording a hand before the game is playing.
+    await useGameStore.getState().recordWin({ winner: 1, discarder: 0, fan: ruleset.minFan });
+    expect(capture).not.toHaveBeenCalled();
+
+    const playerIds = useGameStore.getState().state.playerIds;
+    await useGameStore
+      .getState()
+      .assignSeats(Object.fromEntries(playerIds.map((id, i) => [id, i as Seat])));
+    await useGameStore.getState().chooseFirstDealer(0);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith('game_started');
+
+    // Refused: the game already left setup.
+    await useGameStore.getState().chooseFirstDealer(1);
+    expect(capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits hand_recorded after a successful win with manual defaults and no names', async () => {
+    await setupPlayingGame();
+    capture.mockClear();
+
+    await useGameStore.getState().recordWin({ winner: 1, discarder: 0, fan: ruleset.minFan });
+
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith('hand_recorded', {
+      method: 'manual',
+      corrections: 0,
+      durationMs: 0,
+    });
+  });
+
+  it('passes the camera flow method, corrections and elapsed time through', async () => {
+    await setupPlayingGame();
+    capture.mockClear();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(10_000);
+
+    await useGameStore.getState().recordWin({
+      winner: 1,
+      discarder: 0,
+      fan: ruleset.minFan,
+      method: 'photo',
+      corrections: 3,
+      startedAt: 6_500,
+    });
+    now.mockRestore();
+
+    expect(capture).toHaveBeenCalledWith('hand_recorded', {
+      method: 'photo',
+      corrections: 3,
+      durationMs: 3_500,
+    });
+  });
+
+  it('emits hand_recorded for a draw, and nothing for a refused one', async () => {
+    await useGameStore.getState().recordDraw();
+    expect(capture).not.toHaveBeenCalled();
+
+    await setupPlayingGame();
+    capture.mockClear();
+    await useGameStore.getState().recordDraw();
+    expect(capture).toHaveBeenCalledWith('hand_recorded', {
+      method: 'manual',
+      corrections: 0,
+      durationMs: 0,
+    });
+  });
+
+  it('emits hand_edited for a void', async () => {
+    await setupPlayingGame();
+    await useGameStore.getState().recordDraw();
+    const target = useGameStore.getState().events.at(-1);
+    if (!target) throw new Error('expected an event');
+    capture.mockClear();
+
+    await useGameStore.getState().voidHand(target.id);
+
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith('hand_edited');
+  });
+
+  it('emits game_completed once when the game finishes, not for a manual end', async () => {
+    await setupPlayingGame();
+    capture.mockClear();
+    await playToComplete();
+    expect(capture.mock.calls.filter(([name]) => name === 'game_completed')).toHaveLength(1);
+
+    resetStore();
+    await setupPlayingGame();
+    capture.mockClear();
+    await useGameStore.getState().endGame('manual');
+    expect(capture).not.toHaveBeenCalledWith('game_completed');
+  });
+
+  it('never puts a player name in any event', async () => {
+    await setupPlayingGame();
+    await useGameStore.getState().recordWin({ winner: 1, discarder: 0, fan: ruleset.minFan });
+    await playToComplete();
+    const serialised = JSON.stringify(capture.mock.calls);
+    for (const name of ['Alice', 'Bob', 'Cara', 'Dee']) expect(serialised).not.toContain(name);
   });
 });
