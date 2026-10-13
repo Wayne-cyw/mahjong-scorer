@@ -8,6 +8,7 @@ import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
 import { Button } from '@/components/ui/button';
 import { WinnerPicker, type WinnerPickerResult } from '@/components/hand/winner-picker';
+import { ReviewScreen, type ReviewConfirmation } from '@/components/hand/review-screen';
 import { ManualFanEntry } from '@/components/hand/manual-fan-entry';
 import { PaymentsPreview } from '@/components/hand/payments-preview';
 
@@ -19,8 +20,8 @@ export interface HandClientProps {
 
 /**
  * The `/game/[gameId]/hand` flow (PD-09, PD-13, PD-14): tap the winner, then
- * self-drawn/discard, then (for a discard) the discarder, then enter fan
- * directly and review the payments preview before an explicit Confirm, which
+ * self-drawn/discard, then (for a discard) the discarder, then build the hand
+ * on the tile review screen (or enter fan directly) and review the payments before an explicit Confirm, which
  * is the only thing that appends a `HandWon` event. A Draw button appends
  * `HandDrawn` after its own confirmation. Cancelling at any point before that
  * appends nothing and returns to the table. A refused or failed write keeps
@@ -41,6 +42,7 @@ export function HandClient({ gameId }: HandClientProps) {
   const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   const [selection, setSelection] = useState<WinnerPickerResult | null>(null);
   const [fan, setFan] = useState(0);
+  const [entry, setEntry] = useState<'tiles' | 'fan'>('tiles');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmingDraw, setConfirmingDraw] = useState(false);
@@ -101,12 +103,14 @@ export function HandClient({ gameId }: HandClientProps) {
 
   const handleWinnerComplete = (result: WinnerPickerResult): void => {
     setSelection(result);
+    setEntry('tiles');
     setFan(0);
     setSubmitError(null);
   };
 
   const handleBackToWinner = (): void => {
     setSelection(null);
+    setEntry('tiles');
     setFan(0);
     setSubmitError(null);
   };
@@ -114,16 +118,15 @@ export function HandClient({ gameId }: HandClientProps) {
   /** A refused action resolves false and leaves its reason in the store's error. */
   const refusalMessage = (): string => useGameStore.getState().error ?? 'This hand was not saved.';
 
-  const handleConfirm = async (): Promise<void> => {
-    if (!selection || !ruleset) return;
-    if (fan < ruleset.minFan || fan > ruleset.capFan) return;
+  const submitWin = async (win: { fan: number } & Partial<ReviewConfirmation>): Promise<void> => {
+    if (!selection) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
       const appended = await recordWin({
         winner: selection.winner,
         discarder: selection.discarder,
-        fan,
+        ...win,
       });
       if (!appended) {
         setSubmitError(refusalMessage());
@@ -135,6 +138,15 @@ export function HandClient({ gameId }: HandClientProps) {
       setSubmitError(error instanceof Error ? error.message : String(error));
       setSubmitting(false);
     }
+  };
+
+  const handleConfirm = async (): Promise<void> => {
+    if (!ruleset || fan < ruleset.minFan || fan > ruleset.capFan) return;
+    await submitWin({ fan });
+  };
+
+  const handleReviewConfirm = (confirmation: ReviewConfirmation): void => {
+    void submitWin(confirmation);
   };
 
   const handleDrawConfirmed = async (): Promise<void> => {
@@ -279,34 +291,62 @@ export function HandClient({ gameId }: HandClientProps) {
             .
           </p>
 
-          <ManualFanEntry
-            fan={fan}
-            minFan={ruleset.minFan}
-            capFan={ruleset.capFan}
-            onChange={setFan}
-          />
-
-          {payments && <PaymentsPreview payments={payments} seatLabel={seatLabel} />}
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleBackToWinner}
-              disabled={submitting}
-              className="h-12 flex-1 px-4 text-base"
-            >
-              Back
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void handleConfirm()}
-              disabled={!canConfirm}
-              className="h-12 flex-1 px-4 text-base"
-            >
-              Confirm
-            </Button>
+          <div hidden={entry !== 'tiles'}>
+            <ReviewScreen
+              winner={selection.winner}
+              discarder={selection.discarder}
+              dealer={state.dealer}
+              prevailing={state.prevailing}
+              ruleset={ruleset}
+              seatLabel={seatLabel}
+              onConfirm={handleReviewConfirm}
+              onEnterFanDirectly={() => setEntry('fan')}
+              onBack={handleBackToWinner}
+              submitting={submitting}
+            />
           </div>
+
+          {entry === 'fan' && (
+            <>
+              <ManualFanEntry
+                fan={fan}
+                minFan={ruleset.minFan}
+                capFan={ruleset.capFan}
+                onChange={setFan}
+              />
+
+              {payments && <PaymentsPreview payments={payments} seatLabel={seatLabel} />}
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToWinner}
+                  disabled={submitting}
+                  className="h-12 flex-1 px-4 text-base"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void handleConfirm()}
+                  disabled={!canConfirm}
+                  className="h-12 flex-1 px-4 text-base"
+                >
+                  Confirm
+                </Button>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setEntry('tiles')}
+                disabled={submitting}
+                className="h-12 px-4 text-base"
+              >
+                Score from tiles
+              </Button>
+            </>
+          )}
         </>
       )}
     </main>
