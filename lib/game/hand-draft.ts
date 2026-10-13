@@ -86,8 +86,10 @@ export function setWinningTile(d: HandDraft, tile: Tile | null): HandDraft {
 
 /** Sets or clears one situational flag; unset flags are left out so drafts compare cleanly. */
 export function setFlag(d: HandDraft, flag: HandFlag, value: boolean): HandDraft {
-  const { [flag]: _removed, ...rest } = d.flags;
-  return { ...d, flags: value ? { ...rest, [flag]: true } : rest };
+  const flags = { ...d.flags };
+  if (value) flags[flag] = true;
+  else delete flags[flag];
+  return { ...d, flags };
 }
 
 /** The `WinningHand` for scoring, or null until a winning tile is set. Arrays are copied. */
