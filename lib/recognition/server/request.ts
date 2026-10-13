@@ -43,8 +43,15 @@ export const readDeviceId = (req: Request): string | null => {
   return id !== null && DEVICE_ID.test(id) ? id : null;
 };
 
+/**
+ * Prefers `x-vercel-forwarded-for`, which Vercel sets itself and clients cannot forge. Elsewhere it
+ * falls back to the first `x-forwarded-for` entry, which is only trustworthy if the host
+ * overwrites the header; behind a proxy that appends, the per-IP limit weakens.
+ */
 export const clientIp = (req: Request): string =>
-  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  req.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  'unknown';
 
 /** Cheap checks on headers alone, so oversized or wrong-typed uploads cost nothing to refuse. */
 export const checkUploadHeaders = (req: Request): ImageMediaType => {

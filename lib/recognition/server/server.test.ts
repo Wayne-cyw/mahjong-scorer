@@ -88,6 +88,13 @@ describe('request checks', () => {
     expect(clientIp(request({ headers: { 'x-forwarded-for': '203.0.113.9, 10.0.0.1' } }))).toBe(
       '203.0.113.9',
     );
+    expect(
+      clientIp(
+        request({
+          headers: { 'x-vercel-forwarded-for': '198.51.100.1', 'x-forwarded-for': '6.6.6.6' },
+        }),
+      ),
+    ).toBe('198.51.100.1');
     expect(clientIp(request())).toBe('unknown');
   });
 });
@@ -278,6 +285,25 @@ describe('handleRecognize', () => {
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ ok: false, error: 'rate-limited' });
     expect(create.mock.calls.length).toBe(before);
+  });
+
+  it('returns 429 on the ip limit alone when no device id is sent', async () => {
+    const limiter = createMemoryLimiter(() => 0);
+    const { deps } = setup({ limiter });
+    const headers = { 'x-forwarded-for': '198.51.100.7' };
+    for (let i = 0; i < 60; i++) await limiter.allow('ip', '198.51.100.7');
+    const res = await handleRecognize(request({ headers }), deps);
+    expect(res.status).toBe(429);
+  });
+
+  it('logs the failure when the server cannot be configured', async () => {
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    await handleRecognize(request(), () => {
+      throw new RecognizeError('unavailable');
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]![0]).toContain('"outcome":"unavailable"');
+    spy.mockRestore();
   });
 
   it('returns 503 when the server is not configured', async () => {

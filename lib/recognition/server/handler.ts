@@ -21,6 +21,10 @@ export interface RecognizeDeps {
   log: (line: LogLine) => void;
 }
 
+/** Default sink: one JSON line on stdout. Also used when the deps themselves cannot be built. */
+export const logToConsole = (line: LogLine): void =>
+  console.info(JSON.stringify({ event: 'recognize', ...line }));
+
 const json = (body: unknown, status: number) =>
   Response.json(body, { status, headers: { 'cache-control': 'no-store' } });
 
@@ -39,6 +43,15 @@ export const handleRecognize = async (
     deps = getDeps();
   } catch (err) {
     const code = err instanceof RecognizeError ? err.code : 'unavailable';
+    // A missing key or limiter config is the failure operators most need to see.
+    logToConsole({
+      outcome: code,
+      latencyMs: Date.now() - started,
+      model: 'unknown',
+      inputTokens: 0,
+      outputTokens: 0,
+      tiles: 0,
+    });
     return json({ ok: false, error: code }, RECOGNIZE_ERRORS[code]);
   }
 

@@ -1,6 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { RecognizeError } from '@/lib/recognition/errors';
-import { handleRecognize, type RecognizeDeps } from '@/lib/recognition/server/handler';
+import {
+  handleRecognize,
+  logToConsole,
+  type RecognizeDeps,
+} from '@/lib/recognition/server/handler';
 import { createLimiter, type Limiter } from '@/lib/recognition/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +25,7 @@ const getDeps = (): RecognizeDeps => {
     client,
     limiter,
     model: process.env.RECOGNITION_MODEL || DEFAULT_MODEL,
-    log: (line) => console.info(JSON.stringify({ event: 'recognize', ...line })),
+    log: logToConsole,
   };
 };
 
