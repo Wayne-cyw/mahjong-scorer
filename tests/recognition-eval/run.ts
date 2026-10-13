@@ -60,8 +60,12 @@ const fail = (message: string): never => {
   process.exit(2);
 };
 
-const parseCli = () =>
-  parseArgs({
+const parseCli = () => {
+  // `pnpm eval -- --flag` (npm style) forwards the literal `--`; accept it, reject real strays.
+  const args = process.argv.slice(2);
+  if (args[0] === '--') args.shift();
+  return parseArgs({
+    args,
     options: {
       model: { type: 'string', default: DEFAULT_MODEL },
       dir: { type: 'string', default: join(HERE, 'photos') },
@@ -71,8 +75,9 @@ const parseCli = () =>
       'output-price': { type: 'string', default: '5' },
       limit: { type: 'string' },
     },
-    allowPositionals: true,
+    allowPositionals: false,
   }).values;
+};
 
 const main = async (): Promise<void> => {
   let values: ReturnType<typeof parseCli>;
@@ -118,12 +123,17 @@ const main = async (): Promise<void> => {
     return n;
   };
   const limit = values.limit === undefined ? undefined : positive('limit', values.limit);
+  if (limit !== undefined && !Number.isInteger(limit)) {
+    return fail(`--limit must be a whole number, got "${values.limit}".`);
+  }
   const maxEdge = positive('max-edge', values['max-edge']);
   const prices: Prices = {
     input: positive('input-price', values['input-price']),
     output: positive('output-price', values['output-price']),
   };
   const labels: Label[] = limit ? parsed.data.slice(0, limit) : parsed.data;
+  if (labels.length === 0)
+    return fail(`${labelsPath} lists no photos, so there is nothing to evaluate.`);
   const model = values.model;
 
   const client = new Anthropic({ apiKey });

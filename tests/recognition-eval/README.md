@@ -70,7 +70,8 @@ this script measures model latency only, not the full phone-to-route round trip.
 
 ## Exit codes
 
-`0` ran to completion (even if some photos failed; they are listed). `2` could not start: no
+`0` ran to completion (even if some photos failed; they are listed). Exit 0 does not mean the
+97% gate passed: read the accuracy line. `2` could not start: no
 photo folder, no `labels.json`, a `labels.json` that is not valid JSON or lists a photo twice, a
 bad flag value, or no `ANTHROPIC_API_KEY`. The message says what is missing. `1` the run stopped
 early or hit an unexpected error: after 5 photos in a row fail with `upstream` (usually a rate
