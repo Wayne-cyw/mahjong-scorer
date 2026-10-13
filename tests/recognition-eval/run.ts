@@ -51,13 +51,17 @@ const printSummary = (title: string, s: Summary): void => {
   console.log(`  cost per hand       ${usd(s.costPerHand)}`);
 };
 
+/** Stop early after this many photos in a row fail with `upstream`: that is a key, quota or outage
+ * problem, not the model misreading tiles, and carrying on would only burn time and money. */
+const MAX_CONSECUTIVE_UPSTREAM = 5;
+
 const fail = (message: string): never => {
   console.error(message);
   process.exit(2);
 };
 
-const main = async (): Promise<void> => {
-  const { values } = parseArgs({
+const parseCli = () =>
+  parseArgs({
     options: {
       model: { type: 'string', default: DEFAULT_MODEL },
       dir: { type: 'string', default: join(HERE, 'photos') },
@@ -68,7 +72,15 @@ const main = async (): Promise<void> => {
       limit: { type: 'string' },
     },
     allowPositionals: true,
-  });
+  }).values;
+
+const main = async (): Promise<void> => {
+  let values: ReturnType<typeof parseCli>;
+  try {
+    values = parseCli();
+  } catch (error) {
+    return fail(`${(error as Error).message}`);
+  }
 
   const dir = resolve(values.dir);
   const labelsPath = resolve(values.labels ?? join(dir, 'labels.json'));
@@ -89,24 +101,37 @@ const main = async (): Promise<void> => {
     fail('ANTHROPIC_API_KEY is not set. Export it in this shell to run the evaluation.');
   }
 
-  const parsed = labelsSchema.safeParse(JSON.parse(readFileSync(labelsPath, 'utf8')));
-  if (!parsed.success) {
-    fail(`labels.json is not valid:\n${parsed.error.message}`);
-    return;
+  let rawLabels: unknown;
+  try {
+    rawLabels = JSON.parse(readFileSync(labelsPath, 'utf8'));
+  } catch (error) {
+    return fail(`${labelsPath} is not readable JSON: ${(error as Error).message}`);
   }
-  const limit = values.limit ? Number(values.limit) : undefined;
-  const labels: Label[] = limit ? parsed.data.slice(0, limit) : parsed.data;
-  const prices: Prices = {
-    input: Number(values['input-price']),
-    output: Number(values['output-price']),
+  const parsed = labelsSchema.safeParse(rawLabels);
+  if (!parsed.success) {
+    return fail(`labels.json is not valid:\n${parsed.error.message}`);
+  }
+
+  const positive = (flag: string, raw: string): number => {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) fail(`--${flag} must be a positive number, got "${raw}".`);
+    return n;
   };
-  const maxEdge = Number(values['max-edge']);
+  const limit = values.limit === undefined ? undefined : positive('limit', values.limit);
+  const maxEdge = positive('max-edge', values['max-edge']);
+  const prices: Prices = {
+    input: positive('input-price', values['input-price']),
+    output: positive('output-price', values['output-price']),
+  };
+  const labels: Label[] = limit ? parsed.data.slice(0, limit) : parsed.data;
   const model = values.model;
 
   const client = new Anthropic({ apiKey });
   const items: { tags: { set?: string; lighting?: string }; outcome: PhotoOutcome }[] = [];
 
   console.log(`Evaluating ${labels.length} photo(s) with ${model} at ${maxEdge} px\n`);
+  let upstreamStreak = 0;
+  let stoppedEarly = false;
   for (const [i, label] of labels.entries()) {
     const expected = matchTiles(label, label).expected;
     const tags = { set: label.set, lighting: label.lighting };
@@ -145,6 +170,17 @@ const main = async (): Promise<void> => {
     items.push({ tags, outcome });
     const mark = outcome.ok ? (outcome.exact ? 'ok  ' : 'diff') : 'FAIL';
     console.log(`[${i + 1}/${labels.length}] ${mark} ${label.file} (${ms(outcome.latencyMs)})`);
+
+    upstreamStreak = !outcome.ok && outcome.error === 'upstream' ? upstreamStreak + 1 : 0;
+    if (upstreamStreak >= MAX_CONSECUTIVE_UPSTREAM) {
+      stoppedEarly = true;
+      console.log(
+        `\nStopping after ${MAX_CONSECUTIVE_UPSTREAM} "upstream" failures in a row. That usually ` +
+          'means a rate limit, an invalid key or an outage, not a misread photo. The results ' +
+          'below cover only the photos already run.',
+      );
+      break;
+    }
   }
 
   const outcomes = items.map((i) => i.outcome);
@@ -160,9 +196,16 @@ const main = async (): Promise<void> => {
   }
   const failures = summarize(outcomes, prices).failures;
   if (failures.length > 0) {
-    console.log('\nFailures');
+    console.log('\nFailures (their latency is left out of the percentiles above)');
     for (const f of failures) console.log(`  ${f.file}: ${f.error}`);
+    if (failures.some((f) => f.error === 'upstream')) {
+      console.log(
+        '  Note: "upstream" covers any API error other than a timeout, including a rate limit ' +
+          'or an invalid key. Treat a run with many of them as inconclusive, not as bad accuracy.',
+      );
+    }
   }
+  if (stoppedEarly) process.exitCode = 1;
   console.log(
     `\nCost uses $${prices.input}/M input and $${prices.output}/M output tokens; ` +
       'override with --input-price and --output-price for another model.',
