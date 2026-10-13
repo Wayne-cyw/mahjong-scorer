@@ -70,10 +70,11 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
             {draft.concealed.map((code, i) => {
               const isWinning = draft.winningTile === code;
               const action = mode === 'remove' ? 'Remove' : 'Mark';
+              const hard = uncertain?.concealed.has(i) ? ' (hard to read)' : '';
               const name =
                 mode === 'remove'
-                  ? `Remove ${label(code)}`
-                  : `${action} ${label(code)} as winning tile`;
+                  ? `Remove ${label(code)}${hard}`
+                  : `${action} ${label(code)}${hard} as winning tile`;
               return (
                 <li key={`${code}-${i}`}>
                   <button
@@ -118,7 +119,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
               <li key={code}>
                 <button
                   type="button"
-                  aria-label={`Remove ${label(code)}`}
+                  aria-label={`Remove ${label(code)}${uncertain?.bonus.has(i) ? ' (hard to read)' : ''}`}
                   onClick={() => onChange(removeTile(draft, code))}
                   className="focus-visible:ring-ring/50 flex min-h-12 min-w-12 items-center justify-center rounded-md p-1 focus-visible:ring-[3px] focus-visible:outline-none"
                 >

@@ -33,15 +33,19 @@ const isErrorCode = (value: string): value is RecognizeErrorCode =>
 /**
  * Sends one resized photo to `/api/recognize` (raw JPEG bytes) and returns the validated result.
  * Every failure is a `RecognizeError` with a route code. When the device is offline the network
- * is never touched. The photo is not retained anywhere.
+ * is never touched. The photo is not retained anywhere. Aborting `signal` (the player left the
+ * step) cancels the upload so the photo is not sent or billed needlessly.
  */
-export async function recognize(blob: Blob): Promise<RecognitionResult> {
+export async function recognize(blob: Blob, signal?: AbortSignal): Promise<RecognitionResult> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     throw new RecognizeError('unavailable');
   }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const onCallerAbort = (): void => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener('abort', onCallerAbort, { once: true });
   let response: Response;
   try {
     response = await fetch('/api/recognize', {
@@ -57,6 +61,7 @@ export async function recognize(blob: Blob): Promise<RecognitionResult> {
     throw new RecognizeError('upstream');
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', onCallerAbort);
   }
 
   let json: unknown;

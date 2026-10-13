@@ -175,7 +175,10 @@ describe('hand flow with the camera', () => {
     expect(hand.querySelectorAll('[data-state="uncertain"]')).toHaveLength(1);
 
     fireEvent.click(within(hand).getByRole('button', { name: 'Remove' }));
-    fireEvent.click(within(hand).getByRole('button', { name: `Remove ${name('s8')}` }));
+    // The outlined tile is announced as hard to read, not just ringed in amber.
+    fireEvent.click(
+      within(hand).getByRole('button', { name: `Remove ${name('s8')} (hard to read)` }),
+    );
     fireEvent.click(within(hand).getByRole('button', { name: name('s7') }));
     // Positions are no longer reliable once a tile was removed, so the outline goes.
     expect(hand.querySelectorAll('[data-state="uncertain"]')).toHaveLength(0);

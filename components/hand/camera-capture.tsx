@@ -32,6 +32,7 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingUrl = useRef<string | null>(null);
   const alive = useRef(true);
+  const inFlight = useRef<AbortController | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
 
   const discardPending = (): void => {
@@ -45,6 +46,8 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
     alive.current = true;
     return () => {
       alive.current = false;
+      // Leaving the step cancels the upload instead of sending and billing a photo nobody uses.
+      inFlight.current?.abort();
       discardPending();
     };
   }, []);
@@ -65,10 +68,22 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
       onFailure(code, url);
     };
 
+    inFlight.current?.abort();
+    const controller = new AbortController();
+    inFlight.current = controller;
+
+    let resized: Blob;
+    try {
+      resized = await resizeForUpload(file);
+    } catch {
+      // The file could not be decoded or re-encoded; this is not a connectivity problem.
+      fail('not-a-photo');
+      return;
+    }
+
     let result: RecognitionResult;
     try {
-      const resized = await resizeForUpload(file);
-      result = await recognize(resized);
+      result = await recognize(resized, controller.signal);
     } catch (error) {
       fail(error instanceof RecognizeError ? error.code : 'unavailable');
       return;

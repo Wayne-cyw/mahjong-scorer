@@ -74,7 +74,7 @@ describe('CameraCapture', () => {
     await choosePhoto();
     await waitFor(() => expect(onRecognized).toHaveBeenCalled());
     expect(resizeForUpload).toHaveBeenCalledWith(photo);
-    expect(recognize).toHaveBeenCalledWith(resized);
+    expect(recognize).toHaveBeenCalledWith(resized, expect.any(AbortSignal));
     expect(onRecognized).toHaveBeenCalledWith(result, 'blob:photo');
   });
 
@@ -103,8 +103,26 @@ describe('CameraCapture', () => {
     vi.mocked(resizeForUpload).mockRejectedValue(new Error('decode'));
     const { onFailure } = setup();
     await choosePhoto();
-    await waitFor(() => expect(onFailure).toHaveBeenCalledWith('unavailable', 'blob:photo'));
+    // A decode failure is the file's fault, not connectivity, so it must not say "offline".
+    await waitFor(() => expect(onFailure).toHaveBeenCalledWith('not-a-photo', 'blob:photo'));
     expect(recognize).not.toHaveBeenCalled();
+  });
+
+  it('cancels the upload when the player leaves while the photo is being read', async () => {
+    let seen: AbortSignal | undefined;
+    vi.mocked(recognize).mockImplementation((_blob, signal) => {
+      seen = signal;
+      return new Promise(() => {});
+    });
+    const { unmount } = (() => {
+      const handlers = setup();
+      return { ...handlers, unmount: cleanup };
+    })();
+    await choosePhoto();
+    await waitFor(() => expect(seen).toBeDefined());
+    expect(seen?.aborted).toBe(false);
+    unmount();
+    expect(seen?.aborted).toBe(true);
   });
 
   it('revokes an unclaimed photo url on unmount', async () => {

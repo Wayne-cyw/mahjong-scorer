@@ -132,6 +132,38 @@ describe('recognize', () => {
     await expect(recognize(blob)).rejects.toMatchObject({ code: 'upstream' });
   });
 
+  it('cancels the request when the caller aborts', async () => {
+    let sent: AbortSignal | null | undefined;
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          sent = init.signal;
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          );
+        }),
+    );
+    const caller = new AbortController();
+    const pending = recognize(blob, caller.signal);
+    const assertion = expect(pending).rejects.toMatchObject({ code: 'timeout' });
+    expect(sent?.aborted).toBe(false);
+    caller.abort();
+    await assertion;
+    expect(sent?.aborted).toBe(true);
+  });
+
+  it('does not touch the network when the caller has already aborted', async () => {
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          if (init.signal?.aborted) reject(new DOMException('aborted', 'AbortError'));
+        }),
+    );
+    const caller = new AbortController();
+    caller.abort();
+    await expect(recognize(blob, caller.signal)).rejects.toMatchObject({ code: 'timeout' });
+  });
+
   it('reports a client-side timeout when the request hangs', async () => {
     vi.useFakeTimers();
     try {

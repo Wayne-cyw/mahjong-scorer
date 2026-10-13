@@ -68,7 +68,13 @@ export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
               key={`${meld.kind}-${meld.tiles.join('')}-${i}`}
               className="flex flex-wrap items-center gap-2 rounded-md border p-2"
             >
-              <span className="flex gap-1" role="img" aria-label={meldName(meld)}>
+              <span
+                className="flex gap-1"
+                role="img"
+                aria-label={`${meldName(meld)}${
+                  meld.tiles.some((_, j) => uncertain?.has(`${i}:${j}`)) ? ' (hard to read)' : ''
+                }`}
+              >
                 {meld.tiles.map((t, j) => (
                   <Tile
                     key={j}
