@@ -14,7 +14,7 @@ export function TitleBar({ title, glyph, action }: TitleBarProps) {
   return (
     <header>
       <span className="trim-canvas block h-2.5" aria-hidden="true" />
-      <div className="bg-green-deep text-ivory flex items-center gap-3 px-4 py-3">
+      <div className="bg-green-deep text-ivory flex items-center gap-3 px-4 py-3 md:px-8">
         <GlyphTile glyph={glyph} tone="ivory" size="md" />
         <h1 className="font-display min-w-0 flex-1 text-2xl leading-tight font-black">{title}</h1>
         {action}

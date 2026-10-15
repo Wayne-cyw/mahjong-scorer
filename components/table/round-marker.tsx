@@ -18,14 +18,6 @@ export function RoundMarker({ prevailing, hand, repeat }: RoundMarkerProps) {
   const label = WIND_LABEL[prevailing];
   return (
     <div className="bg-ivory text-lacquer relative flex size-full flex-col items-center justify-center overflow-hidden rounded-md">
-      <span
-        className="trim-canvas anim-stripe-run absolute inset-x-0 top-0 h-2"
-        aria-hidden="true"
-      />
-      <span
-        className="trim-canvas anim-stripe-run absolute inset-x-0 bottom-0 h-2"
-        aria-hidden="true"
-      />
       <div className="font-display relative grid h-[4.25rem] place-items-center text-[4.25rem] leading-none font-black">
         <AnimatePresence mode="popLayout" initial={false}>
           <m.span

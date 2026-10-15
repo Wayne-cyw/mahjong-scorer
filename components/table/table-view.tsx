@@ -141,105 +141,111 @@ export function TableView({
     <div
       data-testid="table-view-root"
       data-orientation={orientation}
-      className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-4"
+      className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-4 md:max-w-3xl lg:max-w-6xl lg:px-8 lg:pt-8"
     >
-      <header className="flex items-center justify-between gap-3">
-        <p className="font-display text-lg leading-tight font-black">
-          {roundLabel.en} round ({roundLabel.zh}), hand {hand}, dealer repeat {repeat}
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={rotate}
-          className="size-12 shrink-0 px-0"
-          aria-label="Rotate table"
-        >
-          <m.span
-            key={orientationIndex}
-            initial={{ rotate: -90 }}
-            animate={{ rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-            className="inline-flex"
-          >
-            <RotateCw className="size-6" aria-hidden="true" />
-          </m.span>
-        </Button>
-      </header>
-
-      <Compass
-        slots={slots}
-        center={<RoundMarker prevailing={round} hand={hand} repeat={repeat} />}
-      />
-
-      {inProgress && <DicePanel />}
-
-      <AnimatePresence>
-        {state.status === 'complete' && (
-          <m.section
-            key="complete"
-            {...panel}
-            className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
-          >
-            <p className="font-display text-xl font-black">Game complete — end game?</p>
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,36rem)_minmax(0,1fr)] lg:items-start lg:gap-10">
+        <div className="flex flex-col gap-4">
+          <header className="flex items-center justify-between gap-3">
+            <p className="font-display text-lg leading-tight font-black">
+              {roundLabel.en} round ({roundLabel.zh}), hand {hand}, dealer repeat {repeat}
+            </p>
             <Button
               type="button"
-              onClick={() => void finish('completed')}
-              className="h-12 text-base"
+              variant="outline"
+              onClick={rotate}
+              className="size-12 shrink-0 px-0"
+              aria-label="Rotate table"
             >
-              End game
+              <m.span
+                key={orientationIndex}
+                initial={{ rotate: -90 }}
+                animate={{ rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                className="inline-flex"
+              >
+                <RotateCw className="size-6" aria-hidden="true" />
+              </m.span>
             </Button>
-          </m.section>
-        )}
+          </header>
 
-        {confirmingEnd && (
-          <m.section
-            key="confirm-end"
-            {...panel}
-            className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
-          >
-            <p className="font-display text-xl font-black">End the game now?</p>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirmingEnd(false)}
-                className="h-12 flex-1 text-base"
+          <Compass
+            slots={slots}
+            center={<RoundMarker prevailing={round} hand={hand} repeat={repeat} />}
+          />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {inProgress && <DicePanel />}
+
+          <AnimatePresence>
+            {state.status === 'complete' && (
+              <m.section
+                key="complete"
+                {...panel}
+                className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
               >
-                Keep playing
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => void finish('manual')}
-                className="h-12 flex-1 text-base"
+                <p className="font-display text-xl font-black">Game complete — end game?</p>
+                <Button
+                  type="button"
+                  onClick={() => void finish('completed')}
+                  className="h-12 text-base"
+                >
+                  End game
+                </Button>
+              </m.section>
+            )}
+
+            {confirmingEnd && (
+              <m.section
+                key="confirm-end"
+                {...panel}
+                className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
               >
-                Confirm end
-              </Button>
-            </div>
-          </m.section>
-        )}
+                <p className="font-display text-xl font-black">End the game now?</p>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setConfirmingEnd(false)}
+                    className="h-12 flex-1 text-base"
+                  >
+                    Keep playing
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => void finish('manual')}
+                    className="h-12 flex-1 text-base"
+                  >
+                    Confirm end
+                  </Button>
+                </div>
+              </m.section>
+            )}
 
-        {overriding && (
-          <m.div key="override" {...panel}>
-            <OverrideSheet
-              seatNames={names}
-              initial={{
-                dealer: state.dealer,
-                prevailing: state.prevailing,
-                dealerRepeat: state.dealerRepeat,
-              }}
-              onSubmit={applyOverride}
-              onCancel={() => setOverriding(false)}
-            />
-          </m.div>
-        )}
-      </AnimatePresence>
+            {overriding && (
+              <m.div key="override" {...panel}>
+                <OverrideSheet
+                  seatNames={names}
+                  initial={{
+                    dealer: state.dealer,
+                    prevailing: state.prevailing,
+                    dealerRepeat: state.dealerRepeat,
+                  }}
+                  onSubmit={applyOverride}
+                  onCancel={() => setOverriding(false)}
+                />
+              </m.div>
+            )}
+          </AnimatePresence>
 
-      {shownError && (
-        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
-          {shownError}
-        </p>
-      )}
+          {shownError && (
+            <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
+              {shownError}
+            </p>
+          )}
+        </div>
+      </div>
 
       <div className="bg-background sticky bottom-0 -mx-4 mt-auto flex flex-col gap-3 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <span className="trim-canvas -mx-4 block h-2" aria-hidden="true" />

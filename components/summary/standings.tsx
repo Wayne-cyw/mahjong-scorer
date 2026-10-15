@@ -31,7 +31,7 @@ export function Standings({ rows, final, onRematch, onHome, rematching, error }:
         title={final ? 'Final standings' : 'Standings so far'}
         glyph={final ? '終' : '局'}
       />
-      <div className="flex flex-col gap-5 px-4 pt-5 pb-10">
+      <div className="flex flex-col gap-5 px-4 pt-5 pb-10 md:px-8 md:pt-8">
         <ol className="flex flex-col gap-3">
           {rows.map((row, i) => {
             const tied = rows.filter((r) => r.rank === row.rank).length > 1;

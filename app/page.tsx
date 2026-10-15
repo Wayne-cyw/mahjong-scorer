@@ -29,17 +29,15 @@ export default function HomePage() {
   }, [reloadKey]);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <span className="trim-canvas anim-stripe-run block h-3.5" aria-hidden="true" />
-
-      <section className="flex gap-5 px-5 pt-8 pb-7">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col md:max-w-4xl">
+      <section className="flex gap-5 px-5 pt-8 pb-7 md:gap-10 md:px-10 md:pt-12 md:pb-10">
         <HangingSign text="麻雀計分" className="mt-3" />
         <div className="anim-rise flex min-w-0 flex-1 flex-col justify-between gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="font-display text-[2.1rem] leading-[1.05] font-black">
+            <h1 className="font-display text-[2.1rem] leading-[1.05] font-black md:text-5xl">
               Mahjong Score Tracker
             </h1>
-            <p className="text-ink-dim text-base">
+            <p className="text-ink-dim text-base md:text-lg">
               Old-style Hong Kong scoring for a table of four. Works without a signal.
             </p>
           </div>
@@ -54,7 +52,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="bg-cream-deep flex flex-1 flex-col gap-6 px-5 pt-6 pb-10">
+      <div className="bg-cream-deep flex flex-1 flex-col gap-8 px-5 pt-6 pb-10 md:grid md:grid-cols-2 md:items-start md:gap-12 md:px-10 md:pt-10">
         <section aria-label="Games" className="flex flex-col gap-3">
           <h2 className="font-display text-xl font-black">Games</h2>
           {loading ? <p className="text-ink-dim">Loading games…</p> : <GameList games={games} />}
