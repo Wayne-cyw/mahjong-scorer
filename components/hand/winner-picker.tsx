@@ -66,7 +66,7 @@ export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProp
     const glyph = windOf ? WIND_LABEL[windOf(seat)].zh : null;
     const inner = (
       <>
-        {glyph && <GlyphTile glyph={glyph} size="md" />}
+        {glyph && <GlyphTile glyph={glyph} size="md" tone="green" />}
         <span className="font-display min-w-0 truncate text-lg font-black">{seatLabel(seat)}</span>
       </>
     );
