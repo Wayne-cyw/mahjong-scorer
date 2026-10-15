@@ -58,7 +58,7 @@ export function ScoreFlip({ value, className, label }: ScoreFlipProps) {
             aria-hidden="true"
             className={cn(
               'numerals pointer-events-none absolute -top-1 right-0 text-base leading-none',
-              delta > 0 ? 'text-sign' : 'text-[#ff9b92]',
+              delta > 0 ? 'text-green' : 'text-lacquer',
             )}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: [0, 1, 1, 0], y: [6, -10, -22, -34] }}

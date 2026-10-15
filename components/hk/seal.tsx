@@ -19,7 +19,7 @@ export function Seal({ glyph, label, className }: SealProps) {
       animate={{ scale: 1, rotate: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 420, damping: 20 }}
       className={cn(
-        'bg-lacquer text-ivory font-display inline-flex size-9 shrink-0 items-center justify-center rounded-sm text-xl leading-none font-black',
+        'bg-lacquer text-ivory font-display border-lacquer-deep inline-flex h-11 w-8 shrink-0 items-center justify-center rounded-[6px] border-b-4 text-xl leading-none font-black',
         className,
       )}
     >

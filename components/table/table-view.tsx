@@ -178,7 +178,7 @@ export function TableView({
           <m.section
             key="complete"
             {...panel}
-            className="bg-felt-raised flex flex-col gap-3 rounded-md p-4"
+            className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
           >
             <p className="font-display text-xl font-black">Game complete — end game?</p>
             <Button
@@ -195,7 +195,7 @@ export function TableView({
           <m.section
             key="confirm-end"
             {...panel}
-            className="bg-felt-raised flex flex-col gap-3 rounded-md p-4"
+            className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
           >
             <p className="font-display text-xl font-black">End the game now?</p>
             <div className="flex gap-3">

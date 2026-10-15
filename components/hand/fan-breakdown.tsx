@@ -23,7 +23,7 @@ export function FanBreakdown({ result, minimumFan, capFan, seatLabel }: FanBreak
   return (
     <section
       aria-label="Fan breakdown"
-      className="bg-felt-raised flex flex-col gap-4 rounded-md p-4"
+      className="bg-cream-raised flex flex-col gap-4 rounded-md p-4"
     >
       {!result.valid && (
         <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
@@ -36,12 +36,12 @@ export function FanBreakdown({ result, minimumFan, capFan, seatLabel }: FanBreak
             <li
               key={`${line.ruleId}-${i}`}
               style={{ ['--i' as string]: i }}
-              className="anim-rise bg-felt-deep flex items-center justify-between gap-2 rounded-md px-3 py-2.5"
+              className="anim-rise bg-cream-deep flex items-center justify-between gap-2 rounded-md px-3 py-2.5"
             >
               <span>
                 {line.nameEn} <span lang="zh-Hant">{line.nameZh}</span>
               </span>
-              <span className="numerals text-sign text-lg">{line.fan} fan</span>
+              <span className="numerals text-green text-lg">{line.fan} fan</span>
             </li>
           ))}
         </ul>
@@ -49,7 +49,7 @@ export function FanBreakdown({ result, minimumFan, capFan, seatLabel }: FanBreak
       <p className="font-display text-2xl leading-tight font-black">
         Total {result.fan} fan
         {result.scoredFan !== result.fan ? ` (capped at ${result.scoredFan})` : ''}
-        <span className="text-ivory-dim ml-2 font-sans text-sm font-normal">
+        <span className="text-ink-dim ml-2 font-sans text-sm font-normal">
           minimum {minimumFan}, cap {capFan}
         </span>
       </p>
@@ -62,7 +62,7 @@ export function FanBreakdown({ result, minimumFan, capFan, seatLabel }: FanBreak
                 <span>{seatLabel(seat)}</span>
                 <span
                   className={
-                    amount >= 0 ? 'numerals text-sign text-xl' : 'numerals text-xl text-[#ff9b92]'
+                    amount >= 0 ? 'numerals text-green text-xl' : 'numerals text-lacquer text-xl'
                   }
                 >
                   {amount > 0 ? '+' : ''}

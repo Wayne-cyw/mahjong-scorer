@@ -5,6 +5,7 @@ import type { Seat } from '@/lib/tiles';
 import { rollDie, tiedPlayers } from '@/lib/game';
 import { Button } from '@/components/ui/button';
 import { Die } from '@/components/dice/die';
+import { GlyphTile } from '@/components/hk/glyph-tile';
 
 export interface FirstDealerPlayer {
   seat: Seat;
@@ -88,7 +89,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
 
   const rerolling = candidates.length < players.length;
   const inputClass =
-    'bg-felt-deep border-felt-deep text-foreground focus-visible:border-sign focus-visible:bg-felt h-14 w-20 rounded-md border-b-4 px-3 text-center text-xl font-bold outline-none disabled:opacity-50';
+    'bg-cream-deep border-cream-edge text-foreground focus-visible:border-sign focus-visible:bg-cream h-14 w-20 rounded-md border-b-4 px-3 text-center text-xl font-bold outline-none disabled:opacity-50';
 
   return (
     <div className="flex flex-col gap-4">
@@ -113,7 +114,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
           >
             Enter a physical roll
           </Button>
-          <p className="text-ivory-dim mt-2 text-base">Or tap a seat to choose directly:</p>
+          <p className="text-ink-dim mt-2 text-base">Or tap a seat to choose directly:</p>
           <div className="grid grid-cols-2 gap-3">
             {players.map((p) => (
               <Button
@@ -124,12 +125,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
                 disabled={disabled}
                 className="font-display h-16 min-w-0 justify-start gap-3 px-3 text-lg font-black"
               >
-                <span
-                  aria-hidden="true"
-                  className="bg-ivory text-lacquer grid size-10 shrink-0 place-items-center rounded-sm text-2xl leading-none"
-                >
-                  {WIND_GLYPH[p.seat]}
-                </span>
+                <GlyphTile glyph={WIND_GLYPH[p.seat]} size="sm" />
                 <span className="truncate">{p.name}</span>
               </Button>
             ))}
@@ -155,7 +151,7 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
             {candidates.map((seat) => (
               <li
                 key={seat}
-                className="bg-felt-raised flex min-h-16 items-center justify-between gap-3 rounded-md px-4"
+                className="bg-cream-raised flex min-h-16 items-center justify-between gap-3 rounded-md px-4"
               >
                 <span className="font-display text-lg font-black">
                   {nameOf(seat)}: {lastRolls[seat] ?? '—'}

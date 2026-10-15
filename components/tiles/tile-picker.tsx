@@ -37,7 +37,7 @@ export function TilePicker({ onPick, used = [], hideBonus }: TilePickerProps) {
     <div className="flex flex-col gap-4">
       {GROUPS.filter((g) => !(hideBonus && g.id === 'f')).map((group) => (
         <section key={group.id} aria-label={group.title} className="flex flex-col gap-2">
-          <h3 className="font-display text-ivory-dim text-base font-black">{group.title}</h3>
+          <h3 className="font-display text-ink-dim text-base font-black">{group.title}</h3>
           <div className="flex flex-wrap gap-2">
             {group.codes.map((code) => {
               const max = group.id === 'f' ? 1 : MAX_COPIES;
@@ -50,7 +50,7 @@ export function TilePicker({ onPick, used = [], hideBonus }: TilePickerProps) {
                   disabled={exhausted}
                   aria-label={`${name.en} ${name.zh}`}
                   onClick={() => onPick(code)}
-                  className="bg-felt-raised focus-visible:ring-ring/60 flex min-h-12 min-w-12 items-center justify-center rounded-md p-1 transition-[transform,opacity,background-color] duration-100 focus-visible:ring-[3px] focus-visible:outline-none active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="bg-cream-raised focus-visible:ring-ring/60 flex min-h-12 min-w-12 items-center justify-center rounded-md p-1 transition-[transform,opacity,background-color] duration-100 focus-visible:ring-[3px] focus-visible:outline-none active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Tile code={code} size="md" decorative />
                 </button>

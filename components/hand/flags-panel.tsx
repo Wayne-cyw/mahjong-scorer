@@ -33,18 +33,18 @@ export function FlagsPanel({ draft, onChange }: FlagsPanelProps) {
 
   const row = ({ flag, en, zh }: FlagInfo) => (
     <li key={flag}>
-      <label className="has-[:checked]:bg-felt-high bg-felt-raised has-[:focus-visible]:ring-ring/60 flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-3 text-base transition-colors duration-150 has-[:focus-visible]:ring-[3px]">
+      <label className="has-[:checked]:bg-green-soft bg-cream-raised has-[:focus-visible]:ring-ring/60 flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-3 text-base transition-colors duration-150 has-[:focus-visible]:ring-[3px]">
         <span className="relative grid size-7 shrink-0 place-items-center">
           <input
             type="checkbox"
             checked={draft.flags[flag] === true}
             onChange={(e) => onChange(setFlag(draft, flag, e.target.checked))}
-            className="bg-felt-deep checked:bg-sign peer size-7 appearance-none rounded-sm transition-colors duration-150"
+            className="bg-cream-deep checked:bg-green peer size-7 appearance-none rounded-sm transition-colors duration-150"
           />
           <Check
             aria-hidden="true"
             strokeWidth={4}
-            className="pointer-events-none absolute size-5 scale-50 text-[#1b1403] opacity-0 transition-[opacity,transform] duration-150 peer-checked:scale-100 peer-checked:opacity-100"
+            className="text-ivory pointer-events-none absolute size-5 scale-50 opacity-0 transition-[opacity,transform] duration-150 peer-checked:scale-100 peer-checked:opacity-100"
           />
         </span>
         <span>

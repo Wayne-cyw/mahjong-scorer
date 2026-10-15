@@ -41,12 +41,12 @@ export function PlayerFields({
             initial={shuffles > 0 ? { rotateY: 180, scale: 0.8 } : false}
             animate={{ rotateY: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 18, delay: seat * 0.06 }}
-            className="bg-ivory text-lacquer font-display border-jade grid size-14 shrink-0 place-items-center rounded-md border-b-4 text-3xl leading-none font-black"
+            className="bg-ivory text-lacquer font-display border-green grid h-16 w-12 shrink-0 place-items-center rounded-[7px] border-b-[5px] text-3xl leading-none font-black"
           >
             {SEAT_GLYPH[seat]}
           </m.span>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <label htmlFor={`player-${seat}`} className="text-ivory-dim text-sm font-medium">
+            <label htmlFor={`player-${seat}`} className="text-ink-dim text-sm font-medium">
               Seat {seat + 1}
             </label>
             <input
@@ -58,7 +58,7 @@ export function PlayerFields({
               value={names[seat] ?? ''}
               onChange={(event) => onNameChange(seat, event.target.value)}
               placeholder={`Player ${seat + 1}`}
-              className="bg-felt-deep border-felt-deep text-foreground placeholder:text-ivory-dim/70 focus-visible:border-sign focus-visible:bg-felt h-14 rounded-md border-b-4 px-3 text-lg font-bold transition-colors outline-none"
+              className="bg-cream-deep border-cream-edge text-foreground placeholder:text-ink-dim/70 focus-visible:border-sign focus-visible:bg-cream h-14 rounded-md border-b-4 px-3 text-lg font-bold transition-colors outline-none"
             />
           </div>
         </div>

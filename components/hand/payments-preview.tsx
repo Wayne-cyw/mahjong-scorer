@@ -12,7 +12,7 @@ export function PaymentsPreview({ payments, seatLabel }: PaymentsPreviewProps) {
   return (
     <section
       aria-label="Payments preview"
-      className="bg-felt-raised flex flex-col gap-3 rounded-md p-4"
+      className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
     >
       <h2 className="font-display text-xl font-black">Payments</h2>
       <ul className="flex flex-col gap-2">
@@ -28,7 +28,7 @@ export function PaymentsPreview({ payments, seatLabel }: PaymentsPreviewProps) {
               <span>{seatLabel(seat)}</span>
               <span
                 className={
-                  amount >= 0 ? 'numerals text-sign text-xl' : 'numerals text-xl text-[#ff9b92]'
+                  amount >= 0 ? 'numerals text-green text-xl' : 'numerals text-lacquer text-xl'
                 }
               >
                 {sign}

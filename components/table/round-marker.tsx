@@ -17,7 +17,7 @@ export interface RoundMarkerProps {
 export function RoundMarker({ prevailing, hand, repeat }: RoundMarkerProps) {
   const label = WIND_LABEL[prevailing];
   return (
-    <div className="bg-lacquer text-ivory relative flex size-full flex-col items-center justify-center overflow-hidden rounded-md">
+    <div className="bg-ivory text-lacquer relative flex size-full flex-col items-center justify-center overflow-hidden rounded-md">
       <span
         className="trim-canvas anim-stripe-run absolute inset-x-0 top-0 h-2"
         aria-hidden="true"
@@ -42,7 +42,7 @@ export function RoundMarker({ prevailing, hand, repeat }: RoundMarkerProps) {
       </div>
       <p className="mt-1 text-base leading-none font-bold" data-testid="hand-counter">
         Hand {hand}
-        {repeat > 0 ? <span className="text-sign"> ×{repeat}</span> : null}
+        {repeat > 0 ? <span className="text-green"> ×{repeat}</span> : null}
       </p>
     </div>
   );

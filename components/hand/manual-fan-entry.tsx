@@ -20,7 +20,7 @@ export function ManualFanEntry({ fan, minFan, capFan, onChange }: ManualFanEntry
   const belowMinimum = fan < minFan;
 
   return (
-    <section aria-label="Fan" className="bg-felt-raised flex flex-col gap-3 rounded-md p-4">
+    <section aria-label="Fan" className="bg-cream-raised flex flex-col gap-3 rounded-md p-4">
       <div className="flex items-center justify-between gap-4">
         <Button
           type="button"
@@ -56,16 +56,14 @@ export function ManualFanEntry({ fan, minFan, capFan, onChange }: ManualFanEntry
             style={{ transitionDelay: `${i * 18}ms` }}
             className={
               i < fan
-                ? 'bg-sign h-3 flex-1 rounded-sm transition-colors duration-200'
-                : 'bg-felt-deep h-3 flex-1 rounded-sm transition-colors duration-200'
+                ? 'bg-green h-3 flex-1 rounded-sm transition-colors duration-200'
+                : 'bg-cream-deep h-3 flex-1 rounded-sm transition-colors duration-200'
             }
           />
         ))}
       </div>
-      <p className="text-ivory-dim text-sm">fan · cap {capFan}</p>
-      {belowMinimum && (
-        <p className="text-ivory-dim text-sm">Needs at least {minFan} fan to win.</p>
-      )}
+      <p className="text-ink-dim text-sm">fan · cap {capFan}</p>
+      {belowMinimum && <p className="text-ink-dim text-sm">Needs at least {minFan} fan to win.</p>}
     </section>
   );
 }

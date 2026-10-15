@@ -80,7 +80,7 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
       >
         Export backup
       </Button>
-      <label className="text-ivory-dim flex min-h-12 flex-col gap-1 text-base">
+      <label className="text-ink-dim flex min-h-12 flex-col gap-1 text-base">
         Import backup
         <input
           type="file"
@@ -89,7 +89,7 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
             void handleImport(e.target.files?.[0]);
             e.target.value = '';
           }}
-          className="text-foreground file:bg-felt-raised min-h-12 text-base file:mr-3 file:h-12 file:rounded-md file:border-0 file:px-4 file:font-bold"
+          className="text-foreground file:bg-cream-raised min-h-12 text-base file:mr-3 file:h-12 file:rounded-md file:border-0 file:px-4 file:font-bold"
         />
       </label>
       {message && <p role="status">{message}</p>}

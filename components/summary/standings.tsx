@@ -46,7 +46,7 @@ export function Standings({ rows, final, onRematch, onHome, rematching, error }:
                 transition={{ duration: 0.5, ease: EASE_OUT_EXPO, delay: 0.1 + i * 0.09 }}
                 className={cn(
                   'relative flex min-h-24 items-center gap-3 overflow-hidden rounded-md p-4',
-                  leader ? 'bg-felt-high' : 'bg-felt-raised',
+                  leader ? 'bg-green-soft' : 'bg-cream-raised',
                 )}
               >
                 <m.span
@@ -55,12 +55,15 @@ export function Standings({ rows, final, onRematch, onHome, rematching, error }:
                   animate={{ scaleX: share }}
                   transition={{ duration: 0.9, ease: EASE_OUT_EXPO, delay: 0.3 + i * 0.09 }}
                   style={{ transformOrigin: 'left' }}
-                  className={cn('absolute inset-x-0 bottom-0 h-2', leader ? 'bg-sign' : 'bg-jade')}
+                  className={cn(
+                    'absolute inset-x-0 bottom-0 h-2',
+                    leader ? 'bg-green' : 'bg-green-edge',
+                  )}
                 />
                 <span
                   className={cn(
                     'numerals w-14 shrink-0 text-4xl leading-none',
-                    leader ? 'text-sign' : 'text-ivory-dim',
+                    leader ? 'text-green' : 'text-ink-dim',
                   )}
                 >
                   {tied ? `T${row.rank}` : row.rank}
@@ -71,11 +74,11 @@ export function Standings({ rows, final, onRematch, onHome, rematching, error }:
                 >
                   {row.name}
                 </span>
-                {leader && <Seal glyph="勝" label="" className="size-8 text-lg" />}
+                {leader && <Seal glyph="勝" label="" className="h-10 w-7 text-lg" />}
                 <span className="flex flex-col items-end">
                   <ScoreFlip value={row.score} className="text-3xl leading-none" />
                   <span
-                    className={cn('text-sm', row.net < 0 ? 'text-[#ff9b92]' : 'text-ivory-dim')}
+                    className={cn('text-sm', row.net < 0 ? 'text-lacquer' : 'text-ink-dim')}
                     aria-label={`${row.name} net result`}
                   >
                     {signed(row.net)} pts

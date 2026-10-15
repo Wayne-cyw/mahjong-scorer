@@ -95,7 +95,7 @@ export function EditHandSheet({
   const title = mode === 'undo' ? 'Undo this hand?' : 'Edit this hand';
 
   return (
-    <section aria-label={title} className="bg-felt-deep flex flex-col gap-3 rounded-md p-4">
+    <section aria-label={title} className="bg-cream-deep flex flex-col gap-3 rounded-md p-4">
       <h3 className="font-display text-xl font-black">{title}</h3>
 
       {mode === 'edit' && (
@@ -107,7 +107,7 @@ export function EditHandSheet({
               inputMode="numeric"
               value={fanText}
               onChange={(e) => setFanText(e.target.value)}
-              className="bg-felt border-felt-high focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
+              className="bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
             />
           </label>
           <label className="flex flex-col gap-1 text-base">
@@ -115,7 +115,7 @@ export function EditHandSheet({
             <select
               value={discarder}
               onChange={(e) => setDiscarder(e.target.value)}
-              className="bg-felt border-felt-high focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
+              className="bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
             >
               <option value={SELF_DRAWN}>Self-drawn (自摸)</option>
               {[0, 1, 2, 3]

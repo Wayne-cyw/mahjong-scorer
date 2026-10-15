@@ -63,8 +63,8 @@ export interface CompassProps {
  */
 export function Compass({ slots, center, className }: CompassProps) {
   return (
-    <div className={cn('bg-lacquer-deep rounded-xl p-2.5', className)}>
-      <div className="bg-felt-deep grid w-full grid-cols-[5.75rem_minmax(0,1fr)_5.75rem] grid-rows-[6.25rem_11.5rem_6.25rem] gap-1.5 rounded-lg p-1.5">
+    <div className={cn('bg-green-deep rounded-xl p-2.5', className)}>
+      <div className="bg-green grid w-full grid-cols-[5.75rem_minmax(0,1fr)_5.75rem] grid-rows-[6.25rem_11.5rem_6.25rem] gap-1.5 rounded-lg p-1.5">
         <div className="col-span-3 col-start-1 row-start-1">
           <Facing slot="top">{slots.top}</Facing>
         </div>

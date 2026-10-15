@@ -63,7 +63,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
           </div>
         </div>
         {draft.concealed.length === 0 ? (
-          <p className="text-ivory-dim text-base">No tiles yet. Tap tiles below to add them.</p>
+          <p className="text-ink-dim text-base">No tiles yet. Tap tiles below to add them.</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             <AnimatePresence initial={false}>
@@ -117,7 +117,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
                         initial={{ scale: 2.6, rotate: -24, opacity: 0 }}
                         animate={{ scale: 1, rotate: -8, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                        className="bg-lacquer text-ivory font-display pointer-events-none absolute -top-2 -right-2 grid size-7 place-items-center rounded-sm text-base leading-none font-black"
+                        className="bg-lacquer text-ivory font-display pointer-events-none absolute -top-2 -right-2 grid h-8 w-6 place-items-center rounded-sm text-sm leading-none font-black"
                       >
                         胡
                       </m.span>
@@ -133,9 +133,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
 
       {draft.bonus.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="font-display text-ivory-dim text-base font-black">
-            Flowers and seasons 花
-          </h3>
+          <h3 className="font-display text-ink-dim text-base font-black">Flowers and seasons 花</h3>
           <ul className="flex flex-wrap gap-2">
             {draft.bonus.map((code, i) => (
               <li key={code}>

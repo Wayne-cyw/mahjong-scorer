@@ -110,7 +110,7 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
         </p>
       )}
       {phase === 'working' && (
-        <p role="status" className="anim-lamp bg-felt-raised rounded-md p-3 text-base font-bold">
+        <p role="status" className="anim-lamp bg-cream-raised rounded-md p-3 text-base font-bold">
           Reading your tiles…
         </p>
       )}

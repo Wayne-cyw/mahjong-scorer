@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { GlyphTile } from './glyph-tile';
 
 export interface TitleBarProps {
   title: string;
@@ -13,13 +14,8 @@ export function TitleBar({ title, glyph, action }: TitleBarProps) {
   return (
     <header>
       <span className="trim-canvas block h-2.5" aria-hidden="true" />
-      <div className="bg-lacquer flex items-center gap-3 px-4 py-3">
-        <span
-          aria-hidden="true"
-          className="bg-sign text-primary-foreground font-display grid size-11 shrink-0 place-items-center rounded-sm text-2xl leading-none font-black"
-        >
-          {glyph}
-        </span>
+      <div className="bg-green-deep text-ivory flex items-center gap-3 px-4 py-3">
+        <GlyphTile glyph={glyph} tone="ivory" size="md" />
         <h1 className="font-display min-w-0 flex-1 text-2xl leading-tight font-black">{title}</h1>
         {action}
       </div>

@@ -66,7 +66,7 @@ export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
           {draft.melds.map((meld, i) => (
             <li
               key={`${meld.kind}-${meld.tiles.join('')}-${i}`}
-              className="bg-felt-raised flex flex-wrap items-center gap-2 rounded-md p-2"
+              className="bg-cream-raised flex flex-wrap items-center gap-2 rounded-md p-2"
             >
               <span
                 className="flex gap-1"
@@ -126,7 +126,7 @@ export function MeldEditor({ draft, onChange, uncertain }: MeldEditorProps) {
 
       {adding !== null && (
         <div className="flex flex-col gap-2">
-          <p className="text-ivory-dim text-base">
+          <p className="text-ink-dim text-base">
             {adding === 'chow' ? 'Tap the lowest tile of the chow.' : 'Tap the tile to meld.'}
           </p>
           <TilePicker hideBonus onPick={pick} />

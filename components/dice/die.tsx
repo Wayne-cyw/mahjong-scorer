@@ -48,7 +48,7 @@ export function Die({ value, tumble, index }: DieProps) {
             pips.includes(cell)
               ? value === 1
                 ? 'bg-lacquer size-5'
-                : 'size-2.5 bg-[#1b1403]'
+                : 'bg-green-deep size-2.5'
               : 'size-2.5 bg-transparent',
           )}
         />

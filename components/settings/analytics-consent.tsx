@@ -30,7 +30,7 @@ export function AnalyticsConsent() {
   };
 
   return (
-    <section className="bg-felt-raised flex flex-col gap-2 rounded-md p-4">
+    <section className="bg-cream-raised flex flex-col gap-2 rounded-md p-4">
       <label className="flex min-h-12 items-center gap-3 font-medium">
         <input
           type="checkbox"
@@ -41,12 +41,12 @@ export function AnalyticsConsent() {
         />
         Share anonymous usage
       </label>
-      <p className="text-ivory-dim text-sm">
+      <p className="text-ink-dim text-sm">
         Counts of games and hands, and how long a hand took. We never send player names or photos.
         Off by default; change it any time.
       </p>
       {failed ? (
-        <p role="alert" className="text-sm text-[#ff9b92]">
+        <p role="alert" className="text-lacquer text-sm">
           Could not save your choice. Try again.
         </p>
       ) : null}

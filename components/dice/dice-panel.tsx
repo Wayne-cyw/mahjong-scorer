@@ -61,9 +61,9 @@ export function DicePanel() {
   const dice = lastRoll?.dice ?? [];
 
   return (
-    <section aria-label="Dice" className="bg-felt-raised flex flex-col gap-4 rounded-md p-4">
+    <section aria-label="Dice" className="bg-cream-raised flex flex-col gap-4 rounded-md p-4">
       <div className="flex items-stretch gap-3">
-        <div className="bg-felt-deep flex min-h-[5.5rem] flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md">
+        <div className="bg-green flex min-h-[5.5rem] flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md">
           {dice.length === 3 ? (
             dice.map((value, i) => (
               <Die key={`${throws}-${i}`} value={value} index={i} tumble={throws > 0} />
@@ -73,7 +73,7 @@ export function DicePanel() {
               {lastRoll.total}
             </span>
           ) : (
-            <span className="font-display text-ivory-dim text-2xl font-black" aria-hidden="true">
+            <span className="font-display text-ivory/70 text-2xl font-black" aria-hidden="true">
               骰
             </span>
           )}
@@ -85,7 +85,7 @@ export function DicePanel() {
 
       <form onSubmit={handlePhysicalSubmit} noValidate className="flex items-end gap-2">
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="physical-total" className="text-ivory-dim">
+          <Label htmlFor="physical-total" className="text-ink-dim">
             Physical total
           </Label>
           <Input

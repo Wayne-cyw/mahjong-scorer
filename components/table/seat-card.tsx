@@ -47,9 +47,11 @@ export function SeatCard({
     <span
       aria-hidden="true"
       className={cn(
-        'font-display grid shrink-0 place-items-center rounded-sm leading-none font-black',
-        compact ? 'size-9 text-2xl' : 'size-14 text-4xl',
-        isDealer ? 'bg-sign text-primary-foreground' : 'bg-felt-deep text-ivory',
+        'font-display grid shrink-0 place-items-center rounded-[7px] border-b-[5px] leading-none font-black',
+        compact ? 'h-10 w-8 text-xl' : 'h-[3.75rem] w-12 text-3xl',
+        isDealer
+          ? 'bg-sign border-sign-deep text-green-deep'
+          : 'bg-green border-green-deep text-ivory',
       )}
     >
       <AnimatePresence mode="popLayout" initial={false}>
@@ -67,7 +69,7 @@ export function SeatCard({
   );
 
   const caption = (
-    <span className={cn('text-ivory-dim leading-tight', compact ? 'text-xs' : 'text-sm')}>
+    <span className={cn('text-ink-dim leading-tight', compact ? 'text-xs' : 'text-sm')}>
       {label.en} {label.zh}
       {isDealer && dealerRepeat > 0 ? ` · repeat ${dealerRepeat}` : null}
     </span>
@@ -100,7 +102,7 @@ export function SeatCard({
       data-dealer={isDealer}
       className={cn(
         'relative flex size-full min-h-0 overflow-hidden rounded-md transition-colors duration-500',
-        isDealer ? 'bg-felt-high' : 'bg-felt-raised',
+        isDealer ? 'bg-green-soft' : 'bg-cream-raised',
         compact ? 'flex-col justify-between px-2.5 py-2' : 'items-center gap-3 px-3',
       )}
     >
@@ -130,7 +132,7 @@ export function SeatCard({
         <Seal
           glyph="莊"
           label="Dealer 莊"
-          className="absolute top-0 right-0 size-7 rounded-none rounded-bl-md text-base"
+          className="absolute top-0 right-2 h-9 w-7 rounded-t-none text-base"
         />
       )}
 
@@ -142,7 +144,7 @@ export function SeatCard({
             exit={{ scaleX: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             style={{ transformOrigin: 'left' }}
-            className="bg-sign absolute inset-x-0 bottom-0 flex h-1.5"
+            className="bg-green absolute inset-x-0 bottom-0 flex h-1.5"
           >
             <span className="sr-only">Wall breaks here</span>
           </m.span>

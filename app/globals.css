@@ -1,47 +1,50 @@
 @import 'tailwindcss';
 
 /*
- * Mahjong parlour, Hong Kong, after dark: green baize ground, lightbox-yellow signboards,
- * lacquer-red seals and 紅白藍 canvas trim. One theme, tuned for a phone on a dim table.
+ * Mahjong parlour, Hong Kong, by day: cream paper and ivory tiles on green baize and enamel
+ * green. Lacquer red and signboard yellow stay small, for seals and the dealer. One theme.
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* Palette roles: one ground, one ink, one accent (signboard yellow), red kept for seals. */
-  --felt: #0c3a2f;
-  --felt-raised: #14503f;
-  --felt-high: #1d6652;
-  --felt-deep: #072a22;
-  --ivory: #f6f0dc;
-  --ivory-dim: #b9cbb9;
-  --sign: #ffc62e;
-  --sign-deep: #b98400;
-  --lacquer: #c9281f;
+  /* Cream does most of the work; green is ink, board and action. */
+  --cream: #f2eacb;
+  --cream-raised: #fffbec;
+  --cream-deep: #e7dbb2;
+  --cream-edge: #c9ba88;
+  --green: #12604a;
+  --green-deep: #0a3f30;
+  --green-soft: #d6e5c9;
+  --green-edge: #aec6a0;
+  --ink-dim: #4d6d5f;
+  --ivory: #fffbec;
+  --sign: #f4b928;
+  --sign-deep: #a97a00;
+  --lacquer: #c42f24;
   --lacquer-deep: #7a1713;
-  --jade: #2e9e7e;
   --canvas-blue: #1f4fa3;
 
   --radius: 0.25rem;
-  --background: var(--felt);
-  --foreground: var(--ivory);
-  --card: var(--felt-raised);
-  --card-foreground: var(--ivory);
-  --popover: var(--felt-deep);
-  --popover-foreground: var(--ivory);
-  --primary: var(--sign);
-  --primary-foreground: #1b1403;
-  --secondary: var(--felt-high);
-  --secondary-foreground: var(--ivory);
-  --muted: var(--felt-raised);
-  --muted-foreground: var(--ivory-dim);
-  --accent: var(--felt-high);
-  --accent-foreground: var(--ivory);
+  --background: var(--cream);
+  --foreground: var(--green-deep);
+  --card: var(--cream-raised);
+  --card-foreground: var(--green-deep);
+  --popover: var(--cream-raised);
+  --popover-foreground: var(--green-deep);
+  --primary: var(--green);
+  --primary-foreground: var(--ivory);
+  --secondary: var(--green-soft);
+  --secondary-foreground: var(--green-deep);
+  --muted: var(--cream-deep);
+  --muted-foreground: var(--ink-dim);
+  --accent: var(--cream-deep);
+  --accent-foreground: var(--green-deep);
   --destructive: var(--lacquer);
   --destructive-foreground: var(--ivory);
-  --border: #3d7c68;
-  --input: #5c9885;
-  --ring: var(--sign);
+  --border: var(--cream-edge);
+  --input: var(--cream-edge);
+  --ring: var(--green);
 
   --font-display-stack:
     'Noto Serif TC', 'Songti SC', 'Songti TC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'STSong',
@@ -75,17 +78,20 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-felt: var(--felt);
-  --color-felt-raised: var(--felt-raised);
-  --color-felt-high: var(--felt-high);
-  --color-felt-deep: var(--felt-deep);
+  --color-cream: var(--cream);
+  --color-cream-raised: var(--cream-raised);
+  --color-cream-deep: var(--cream-deep);
+  --color-cream-edge: var(--cream-edge);
+  --color-green: var(--green);
+  --color-green-deep: var(--green-deep);
+  --color-green-soft: var(--green-soft);
+  --color-green-edge: var(--green-edge);
+  --color-ink-dim: var(--ink-dim);
   --color-ivory: var(--ivory);
-  --color-ivory-dim: var(--ivory-dim);
   --color-sign: var(--sign);
   --color-sign-deep: var(--sign-deep);
   --color-lacquer: var(--lacquer);
   --color-lacquer-deep: var(--lacquer-deep);
-  --color-jade: var(--jade);
   --color-canvas-blue: var(--canvas-blue);
 
   --radius-sm: calc(var(--radius) - 1px);
@@ -110,8 +116,8 @@
     overscroll-behavior-y: none;
   }
   ::selection {
-    background: var(--sign);
-    color: #1b1403;
+    background: var(--green);
+    color: var(--ivory);
   }
 }
 

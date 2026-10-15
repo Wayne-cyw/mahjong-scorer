@@ -39,14 +39,14 @@ export default function HomePage() {
             <h1 className="font-display text-[2.1rem] leading-[1.05] font-black">
               Mahjong Score Tracker
             </h1>
-            <p className="text-ivory-dim text-base">
+            <p className="text-ink-dim text-base">
               Old-style Hong Kong scoring for a table of four. Works without a signal.
             </p>
           </div>
           <Link
             href="/setup"
             style={{ ['--i' as string]: 2 }}
-            className="anim-rise bg-primary text-primary-foreground border-sign-deep font-display flex h-16 items-center justify-center gap-3 rounded-md border-b-4 text-2xl font-black transition-transform duration-150 active:translate-y-[3px] active:border-b-2"
+            className="anim-rise bg-primary text-primary-foreground border-green-deep font-display flex h-16 items-center justify-center gap-3 rounded-md border-b-4 text-2xl font-black transition-transform duration-150 active:translate-y-[3px] active:border-b-2"
           >
             <span aria-hidden="true">開</span>
             New game
@@ -54,10 +54,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="bg-felt-deep flex flex-1 flex-col gap-6 px-5 pt-6 pb-10">
+      <div className="bg-cream-deep flex flex-1 flex-col gap-6 px-5 pt-6 pb-10">
         <section aria-label="Games" className="flex flex-col gap-3">
           <h2 className="font-display text-xl font-black">Games</h2>
-          {loading ? <p className="text-ivory-dim">Loading games…</p> : <GameList games={games} />}
+          {loading ? <p className="text-ink-dim">Loading games…</p> : <GameList games={games} />}
         </section>
         <BackupPanel onImported={() => setReloadKey((k) => k + 1)} />
       </div>

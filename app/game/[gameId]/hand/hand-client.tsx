@@ -308,7 +308,7 @@ export function HandClient({ gameId }: HandClientProps) {
             onComplete={handleWinnerComplete}
           />
 
-          <div className="bg-felt-deep flex flex-col gap-3 rounded-md p-4">
+          <div className="bg-cream-deep flex flex-col gap-3 rounded-md p-4">
             {!confirmingDraw ? (
               <Button
                 type="button"
@@ -350,7 +350,7 @@ export function HandClient({ gameId }: HandClientProps) {
       ) : (
         <>
           <p className="font-display flex items-center gap-3 text-xl leading-snug font-black">
-            <Seal glyph="胡" label="" className="size-10 text-2xl" />
+            <Seal glyph="胡" label="" className="h-12 w-9 text-2xl" />
             <span>
               {seatLabel(selection.winner)} won
               {selection.discarder === undefined

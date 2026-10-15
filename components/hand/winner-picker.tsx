@@ -5,6 +5,7 @@ import { AnimatePresence, m } from 'motion/react';
 import type { Seat, Wind } from '@/lib/tiles';
 import { Compass, SLOTS, seatAtSlot, type Slot } from '@/components/hk/compass';
 import { Button } from '@/components/ui/button';
+import { GlyphTile } from '@/components/hk/glyph-tile';
 import { cn } from '@/lib/utils';
 import { WIND_LABEL } from '@/components/table/seat-card';
 
@@ -65,14 +66,7 @@ export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProp
     const glyph = windOf ? WIND_LABEL[windOf(seat)].zh : null;
     const inner = (
       <>
-        {glyph && (
-          <span
-            aria-hidden="true"
-            className="bg-ivory text-lacquer font-display grid size-11 shrink-0 place-items-center rounded-sm text-2xl leading-none font-black"
-          >
-            {glyph}
-          </span>
-        )}
+        {glyph && <GlyphTile glyph={glyph} size="md" />}
         <span className="font-display min-w-0 truncate text-lg font-black">{seatLabel(seat)}</span>
       </>
     );
@@ -80,7 +74,7 @@ export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProp
       return (
         <div
           className={cn(
-            'bg-felt-deep text-ivory-dim flex size-full items-center justify-start gap-2.5 rounded-md px-3',
+            'bg-cream-deep text-ink-dim flex size-full items-center justify-start gap-2.5 rounded-md px-3',
           )}
         >
           {inner}
@@ -90,7 +84,7 @@ export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProp
     return (
       <Button
         type="button"
-        variant="secondary"
+        variant="outline"
         onClick={() => onPick(seat)}
         className="size-full justify-start gap-2.5 px-3 text-lg"
       >
@@ -169,7 +163,7 @@ export function WinnerPicker({ seatLabel, windOf, onComplete }: WinnerPickerProp
 
 function PromptBlock({ glyph, caption }: { glyph: string; caption: string }) {
   return (
-    <div className="bg-lacquer text-ivory flex size-full flex-col items-center justify-center gap-1 rounded-md">
+    <div className="bg-ivory text-lacquer flex size-full flex-col items-center justify-center gap-1 rounded-md">
       <span aria-hidden="true" className="font-display text-[3.75rem] leading-none font-black">
         {glyph}
       </span>

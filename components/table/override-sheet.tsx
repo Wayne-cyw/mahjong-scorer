@@ -51,12 +51,12 @@ export function OverrideSheet({ seatNames, initial, onSubmit, onCancel }: Overri
   };
 
   const fieldClass =
-    'bg-felt border-felt-high focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none';
+    'bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none';
 
   return (
     <section
       aria-label="Override table state"
-      className="bg-felt-raised flex flex-col gap-3 rounded-md p-4"
+      className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
     >
       <h3 className="font-display text-xl font-black">Override table state</h3>
       <label className="flex flex-col gap-1 text-base">

@@ -15,7 +15,7 @@ export function PresetPicker({ presets, selectedId, onSelect }: PresetPickerProp
       {presets.map((preset) => (
         <label
           key={preset.id}
-          className="bg-felt-raised border-felt-deep has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:border-sign-deep has-[:focus-visible]:ring-ring/60 flex min-h-16 cursor-pointer items-center gap-4 rounded-md border-b-4 px-4 transition-[background-color,color,transform] duration-200 has-[:checked]:-translate-y-0.5 has-[:focus-visible]:ring-[3px]"
+          className="bg-cream-raised border-cream-edge has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:border-green-deep has-[:focus-visible]:ring-ring/60 flex min-h-16 cursor-pointer items-center gap-4 rounded-md border-b-4 px-4 transition-[background-color,color,transform] duration-200 has-[:checked]:-translate-y-0.5 has-[:focus-visible]:ring-[3px]"
         >
           <input
             type="radio"
@@ -27,7 +27,7 @@ export function PresetPicker({ presets, selectedId, onSelect }: PresetPickerProp
           />
           <span
             aria-hidden="true"
-            className="border-ivory-dim grid size-7 shrink-0 place-items-center rounded-full border-4 peer-checked:border-[#1b1403] peer-checked:bg-[#1b1403]"
+            className="border-ink-dim peer-checked:border-ivory peer-checked:bg-ivory grid size-7 shrink-0 place-items-center rounded-full border-4"
           />
           <span className="font-display text-lg leading-snug font-black">{preset.name}</span>
         </label>
