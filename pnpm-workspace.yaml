@@ -1,5 +1,6 @@
 allowBuilds:
   core-js: false
+  esbuild: false
   unrs-resolver: true
 overrides:
   browserslist: ^4.28.7
