@@ -18,7 +18,7 @@
     "size": "size-limit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.128.0",
+    "@google/genai": "^2.29.1",
     "@sentry/nextjs": "^11.0.0",
     "@serwist/next": "^9.5.12",
     "@serwist/window": "^9.5.12",

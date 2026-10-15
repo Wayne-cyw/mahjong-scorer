@@ -1,6 +1,6 @@
 # Mahjong Score Tracker
 
-Local-first Hong Kong mahjong scorer: a Next.js PWA where the phone holds all game logic and one stateless route (`/api/recognize`) sends hand photos to Claude. Full rationale lives in the design docs (gitignored, local only): `Mahjong Score Tracker — Engineering Design.md` (ADR-xx) and `— Product Direction.md` (PD-xx).
+Local-first Hong Kong mahjong scorer: a Next.js PWA where the phone holds all game logic and one stateless route (`/api/recognize`) sends hand photos to Gemini. Full rationale lives in the design docs (gitignored, local only): `Mahjong Score Tracker — Engineering Design.md` (ADR-xx) and `— Product Direction.md` (PD-xx).
 
 ## Commands
 

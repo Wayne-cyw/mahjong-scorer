@@ -1,6 +1,8 @@
 allowBuilds:
+  '@google/genai': false
   core-js: false
   esbuild: false
+  protobufjs: false
   unrs-resolver: true
 overrides:
   browserslist: ^4.28.7
