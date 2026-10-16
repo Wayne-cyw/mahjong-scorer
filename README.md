@@ -2,12 +2,11 @@
 <p align="center"><b>Photograph a winning Hong Kong mahjong hand and get the fan, payments and next dealer instantly, with no account and full offline play.</b></p>
 
 <p align="center">
-  <img src="docs/demo.gif" alt="Demo of Mahjong Scorer" width="700">
+  <img src="assets/demo.gif" alt="Demo of Mahjong Scorer" width="700">
 </p>
 
 <p align="center">
-  <a href="https://TODO-live-demo-url">Live Demo</a> ·
-  <a href="https://TODO-video-url">2-min Video Walkthrough</a>
+  <a href="https://mahjong-scorer.waynechiu.com">Live Demo</a>
 </p>
 
 <p align="center">
@@ -31,9 +30,9 @@ Hong Kong mahjong scoring is hard to do correctly at speed: patterns overlap, so
 
 ## Demo & Screenshots
 
-| Photo to hand                          | Fan breakdown                          |
-| -------------------------------------- | -------------------------------------- |
-| ![Screenshot 1](docs/screenshot-1.png) | ![Screenshot 2](docs/screenshot-2.png) |
+| Game table                                                           | Photo or manual entry                                                             | Fan breakdown and payments                                                           |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ![Game table with dealer, winds and scores](assets/screenshot-1.png) | ![Camera step with a layout guide and a manual fallback](assets/screenshot-2.png) | ![Itemized fan and payments for a small three dragons hand](assets/screenshot-3.png) |
 
 ## Features
 
@@ -125,7 +124,7 @@ mahjong-scorer/
 │   ├── db/         # Dexie persistence and backup
 │   └── recognition/# prompt, schema, validation
 ├── tests/          # golden hands, e2e, recognition eval
-└── docs/
+└── assets/         # demo GIF and screenshots
 ```
 
 ## Testing & Quality
