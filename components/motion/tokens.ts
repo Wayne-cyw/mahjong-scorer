@@ -6,6 +6,9 @@ export const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 export const SPRING_SNAP: Transition = { type: 'spring', stiffness: 520, damping: 30, mass: 0.8 };
 export const SPRING_SOFT: Transition = { type: 'spring', stiffness: 260, damping: 26 };
 export const SPRING_BOUNCE: Transition = { type: 'spring', stiffness: 380, damping: 16 };
+/** Soft spring that overshoots slightly, for fields and markers flipping in. */
+export const SPRING_FLIP: Transition = { type: 'spring', stiffness: 260, damping: 18 };
+
 /** Loose, heavy landing for thrown dice. */
 export const SPRING_TUMBLE: Transition = { type: 'spring', stiffness: 240, damping: 13, mass: 0.9 };
 

@@ -9,14 +9,14 @@ export type Slot = 'bottom' | 'right' | 'top' | 'left';
 export const SLOTS: readonly Slot[] = ['bottom', 'right', 'top', 'left'];
 
 /** How far each slot's content turns so its upright edge points at the player sitting there. */
-type Facing = 0 | 90 | 180 | 270;
+type FacingDegrees = 0 | 90 | 180 | 270;
 
-const UPRIGHT: Facing = 0;
-const QUARTER_TURN: Facing = 90;
-const HALF_TURN: Facing = 180;
-const THREE_QUARTER_TURN: Facing = 270;
+const UPRIGHT: FacingDegrees = 0;
+const QUARTER_TURN: FacingDegrees = 90;
+const HALF_TURN: FacingDegrees = 180;
+const THREE_QUARTER_TURN: FacingDegrees = 270;
 
-const FACING: Record<Slot, Facing> = {
+const FACING: Record<Slot, FacingDegrees> = {
   bottom: UPRIGHT,
   right: THREE_QUARTER_TURN,
   top: HALF_TURN,
