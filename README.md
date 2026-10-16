@@ -145,7 +145,7 @@ mahjong-scorer/
 
 I'm Wayne Chiu, a penultimate-year Computer Science student at the University of Toronto seeking software engineering internships.
 
-[Portfolio](https://TODO) · [LinkedIn](https://TODO) · [Email](mailto:wayne.chiu0823@gmail.com)
+[Email](mailto:wayne.chiu0823@gmail.com)
 
 ## License
 
