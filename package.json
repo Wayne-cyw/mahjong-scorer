@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "size": "size-limit"
+    "size": "size-limit",
+    "eval": "tsx tests/recognition-eval/run.ts"
   },
   "dependencies": {
     "@google/genai": "^2.29.1",
