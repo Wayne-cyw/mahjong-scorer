@@ -1,6 +1,5 @@
-import type Anthropic from '@anthropic-ai/sdk';
 import { RECOGNIZE_ERRORS, RecognizeError, type RecognizeErrorCode } from '../errors';
-import { recognizeImage } from './claude';
+import { recognizeImage, type GeminiClient } from './gemini';
 import type { Limiter } from './rate-limit';
 import { checkOrigin, checkUploadHeaders, clientIp, readDeviceId, readImage } from './request';
 
@@ -15,7 +14,7 @@ export interface LogLine {
 }
 
 export interface RecognizeDeps {
-  client: Pick<Anthropic, 'messages'>;
+  client: GeminiClient;
   limiter: Limiter;
   model: string;
   log: (line: LogLine) => void;

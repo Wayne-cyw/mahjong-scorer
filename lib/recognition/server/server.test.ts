@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { ApiError } from '@google/genai';
 import { describe, expect, it, vi } from 'vitest';
 import { RecognizeError } from '../errors';
-import { recognizeImage } from './claude';
+import { recognizeImage, type GeminiClient } from './gemini';
 import { handleRecognize, type LogLine } from './handler';
 import { createLimiter, createMemoryLimiter } from './rate-limit';
 import { MAX_IMAGE_BYTES, checkOrigin, clientIp, readDeviceId, readImage } from './request';
@@ -36,9 +36,9 @@ const code = async (p: Promise<unknown>) => {
 };
 
 const message = (over: Record<string, unknown> = {}) => ({
-  stop_reason: 'end_turn',
-  content: [{ type: 'text', text: JSON.stringify(HAND) }],
-  usage: { input_tokens: 1700, output_tokens: 90 },
+  candidates: [{ finishReason: 'STOP' }],
+  text: JSON.stringify(HAND),
+  usageMetadata: { promptTokenCount: 1700, candidatesTokenCount: 90 },
   ...over,
 });
 
@@ -48,10 +48,12 @@ const fakeClient = (...responses: unknown[]) => {
     if (r instanceof Error) create.mockRejectedValueOnce(r);
     else create.mockResolvedValueOnce(r);
   }
-  return { client: { messages: { create } } as unknown as Anthropic, create };
+  return { client: { models: { generateContent: create } } as unknown as GeminiClient, create };
 };
 
-const httpError = (status: number) => Object.assign(new Error(`http ${status}`), { status });
+const httpError = (status: number) => new ApiError({ message: `http ${status}`, status });
+
+const timeoutError = () => Object.assign(new Error('aborted'), { name: 'AbortError' });
 
 describe('request checks', () => {
   it('accepts a same-origin request and honours x-forwarded-host', () => {
@@ -175,11 +177,46 @@ describe('recognizeImage', () => {
     expect(out.usage).toEqual({ inputTokens: 1700, outputTokens: 90 });
     const [params] = create.mock.calls[0] as [Record<string, unknown>];
     expect(params.model).toBe('test-model');
-    const content = (params.messages as { content: { type: string }[] }[])[0]!.content;
-    expect(content.map((b) => b.type)).toEqual(['image', 'text']);
-    const format = (params.output_config as { format: { type: string; schema: object } }).format;
-    expect(format.type).toBe('json_schema');
-    expect(JSON.stringify(format.schema)).toContain('concealed');
+    const parts = (params.contents as { parts: Record<string, unknown>[] }[])[0]!.parts;
+    expect(parts.map((p) => Object.keys(p)[0])).toEqual(['inlineData', 'text']);
+    const config = params.config as Record<string, unknown>;
+    expect(config.responseMimeType).toBe('application/json');
+    expect(JSON.stringify(config.responseJsonSchema)).toContain('concealed');
+  });
+
+  it('bounds spend: capped output, low thinking, and no SDK-level retries', async () => {
+    const { client, create } = fakeClient(message());
+    await recognizeImage({ client, model: 'm', image });
+    const [params] = create.mock.calls[0] as [
+      {
+        config: {
+          maxOutputTokens: number;
+          thinkingConfig: { thinkingLevel: string };
+          httpOptions: { timeout: number; retryOptions: { attempts: number } };
+        };
+      },
+    ];
+    expect(params.config.maxOutputTokens).toBeLessThanOrEqual(1024);
+    expect(params.config.thinkingConfig.thinkingLevel).toBe('LOW');
+    expect(params.config.httpOptions.retryOptions.attempts).toBe(1);
+    expect(params.config.httpOptions.timeout).toBeLessThanOrEqual(20_000);
+  });
+
+  it('bills thinking tokens as output', async () => {
+    const { client } = fakeClient(
+      message({
+        usageMetadata: { promptTokenCount: 1700, candidatesTokenCount: 90, thoughtsTokenCount: 40 },
+      }),
+    );
+    const out = await recognizeImage({ client, model: 'm', image });
+    expect(out.usage).toEqual({ inputTokens: 1700, outputTokens: 130 });
+  });
+
+  it('retries once on rate limiting', async () => {
+    const { client, create } = fakeClient(httpError(429), message());
+    const out = await recognizeImage({ client, model: 'm', image });
+    expect(out.result.isMahjongHand).toBe(true);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it('retries once on an overload and succeeds', async () => {
@@ -202,22 +239,18 @@ describe('recognizeImage', () => {
   });
 
   it('maps a request timeout to timeout without retrying', async () => {
-    const { client, create } = fakeClient(new Anthropic.APIConnectionTimeoutError());
+    const { client, create } = fakeClient(timeoutError());
     expect(await code(recognizeImage({ client, model: 'm', image }))).toBe('timeout');
     expect(create).toHaveBeenCalledTimes(1);
   });
 
   it.each([
-    ['a refusal', message({ stop_reason: 'refusal' })],
-    ['truncated output', message({ stop_reason: 'max_tokens' })],
-    ['no text block', message({ content: [] })],
-    ['non-JSON text', message({ content: [{ type: 'text', text: 'sorry' }] })],
-    [
-      'schema-invalid JSON',
-      message({
-        content: [{ type: 'text', text: JSON.stringify({ ...HAND, concealed: ['x1'] }) }],
-      }),
-    ],
+    ['a safety stop', message({ candidates: [{ finishReason: 'SAFETY' }] })],
+    ['truncated output', message({ candidates: [{ finishReason: 'MAX_TOKENS' }] })],
+    ['no candidates', message({ candidates: [] })],
+    ['no text', message({ text: undefined })],
+    ['non-JSON text', message({ text: 'sorry' })],
+    ['schema-invalid JSON', message({ text: JSON.stringify({ ...HAND, concealed: ['x1'] }) })],
   ])('reports %s as invalid-model-output', async (_l, response) => {
     const { client } = fakeClient(response);
     expect(await code(recognizeImage({ client, model: 'm', image }))).toBe('invalid-model-output');
@@ -226,7 +259,7 @@ describe('recognizeImage', () => {
 
 describe('handleRecognize', () => {
   const setup = (
-    opts: { client?: Anthropic; limiter?: ReturnType<typeof createMemoryLimiter> } = {},
+    opts: { client?: GeminiClient; limiter?: ReturnType<typeof createMemoryLimiter> } = {},
   ) => {
     const lines: LogLine[] = [];
     const deps = () => ({
@@ -317,7 +350,7 @@ describe('handleRecognize', () => {
   it('maps upstream failures to 502 and timeouts to 504', async () => {
     const down = setup({ client: fakeClient(httpError(500), httpError(500)).client });
     expect((await handleRecognize(request(), down.deps)).status).toBe(502);
-    const slow = setup({ client: fakeClient(new Anthropic.APIConnectionTimeoutError()).client });
+    const slow = setup({ client: fakeClient(timeoutError()).client });
     expect((await handleRecognize(request(), slow.deps)).status).toBe(504);
   });
 });

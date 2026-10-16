@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { RecognizeError } from '@/lib/recognition/errors';
 import {
   handleRecognize,
@@ -11,16 +11,16 @@ export const dynamic = 'force-dynamic';
 // Above the 20 s model budget so a slow call fails as `timeout`, not as a platform kill.
 export const maxDuration = 30;
 
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+const DEFAULT_MODEL = 'gemini-3.8-flash';
 
 let limiter: Limiter | undefined;
-let client: Anthropic | undefined;
+let client: GoogleGenAI | undefined;
 
 const getDeps = (): RecognizeDeps => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new RecognizeError('unavailable');
   limiter ??= createLimiter(process.env);
-  client ??= new Anthropic({ apiKey });
+  client ??= new GoogleGenAI({ apiKey });
   return {
     client,
     limiter,
