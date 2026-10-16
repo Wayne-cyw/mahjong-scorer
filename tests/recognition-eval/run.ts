@@ -2,12 +2,12 @@
  * Recognition evaluation (ADR-48). Runs every labelled photo through the same model call the
  * route makes and reports per-tile accuracy, zero-correction rate, latency and cost per hand.
  *
- *   pnpm eval --model claude-haiku-4-5-20251001
+ *   pnpm eval --input-price <usd/M> --output-price <usd/M>
  *
  * See README.md for the photo folder and labels format. Photos are read locally, resized like
- * the phone does, sent to the Claude API and never written anywhere.
+ * the phone does, sent to the Gemini API and never written anywhere.
  */
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -23,9 +23,9 @@ import {
   type Summary,
 } from '@/lib/recognition/eval-metrics';
 import { RecognizeError } from '@/lib/recognition/errors';
-import { recognizeImage } from '@/lib/recognition/server/claude';
+import { recognizeImage } from '@/lib/recognition/server/gemini';
 
-const DEFAULT_MODEL = process.env.RECOGNITION_MODEL || 'claude-haiku-4-5-20251001';
+const DEFAULT_MODEL = process.env.RECOGNITION_MODEL || 'gemini-3.8-flash';
 const HERE = new URL('.', import.meta.url).pathname;
 
 /** The 1568 px / 0.85 JPEG pipeline of the phone (ADR-42), so the eval sees what the route sees. */
@@ -71,8 +71,8 @@ const parseCli = () => {
       dir: { type: 'string', default: join(HERE, 'photos') },
       labels: { type: 'string' },
       'max-edge': { type: 'string', default: '1568' },
-      'input-price': { type: 'string', default: '1' },
-      'output-price': { type: 'string', default: '5' },
+      'input-price': { type: 'string' },
+      'output-price': { type: 'string' },
       limit: { type: 'string' },
     },
     allowPositionals: false,
@@ -101,9 +101,9 @@ const main = async (): Promise<void> => {
         'Copy tests/recognition-eval/labels.example.json next to your photos as labels.json.',
     );
   }
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    fail('ANTHROPIC_API_KEY is not set. Export it in this shell to run the evaluation.');
+    fail('GEMINI_API_KEY is not set. Export it in this shell to run the evaluation.');
   }
 
   let rawLabels: unknown;
@@ -127,16 +127,25 @@ const main = async (): Promise<void> => {
     return fail(`--limit must be a whole number, got "${values.limit}".`);
   }
   const maxEdge = positive('max-edge', values['max-edge']);
+  // No defaults: a stale list price would silently misreport cost, so take it from the user.
+  const inputPrice = values['input-price'];
+  const outputPrice = values['output-price'];
+  if (inputPrice === undefined || outputPrice === undefined) {
+    return fail(
+      '--input-price and --output-price are required (US dollars per million tokens). ' +
+        "Copy them from Google's current Gemini API pricing for the model you evaluate.",
+    );
+  }
   const prices: Prices = {
-    input: positive('input-price', values['input-price']),
-    output: positive('output-price', values['output-price']),
+    input: positive('input-price', inputPrice),
+    output: positive('output-price', outputPrice),
   };
   const labels: Label[] = limit ? parsed.data.slice(0, limit) : parsed.data;
   if (labels.length === 0)
     return fail(`${labelsPath} lists no photos, so there is nothing to evaluate.`);
   const model = values.model;
 
-  const client = new Anthropic({ apiKey });
+  const client = new GoogleGenAI({ apiKey });
   const items: { tags: { set?: string; lighting?: string }; outcome: PhotoOutcome }[] = [];
 
   console.log(`Evaluating ${labels.length} photo(s) with ${model} at ${maxEdge} px\n`);
@@ -218,7 +227,7 @@ const main = async (): Promise<void> => {
   if (stoppedEarly) process.exitCode = 1;
   console.log(
     `\nCost uses $${prices.input}/M input and $${prices.output}/M output tokens; ` +
-      'override with --input-price and --output-price for another model.',
+      'these come from --input-price and --output-price.',
   );
 };
 
