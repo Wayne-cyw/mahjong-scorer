@@ -1,6 +1,8 @@
 // Fails when a server-only secret could reach the browser (ADR-57). Run after `pnpm build`.
 //  1. No NEXT_PUBLIC_* variable name looks like a secret, other than the allowlisted ones.
-//  2. No file the browser can download contains an Anthropic key pattern or this build's key value.
+//  2. No file the browser can download contains a model key pattern or this build's key value.
+// In CI the real secrets are absent, so the value check only has teeth when run with real env
+// locally; the pattern check and the name check are what CI enforces.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -8,8 +10,13 @@ const PUBLIC_DIRS = ['.next/static', 'public'];
 const SECRETISH = /KEY|SECRET|TOKEN|PASSWORD/;
 // Public by design: PostHog project keys and Sentry DSNs ship to the browser.
 const ALLOWED_PUBLIC = new Set(['NEXT_PUBLIC_POSTHOG_KEY']);
-const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]{20,}/;
-const SERVER_ONLY = ['ANTHROPIC_API_KEY', 'UPSTASH_REDIS_REST_TOKEN', 'SENTRY_AUTH_TOKEN'];
+const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35}/;
+const SERVER_ONLY = [
+  'ANTHROPIC_API_KEY',
+  'GEMINI_API_KEY',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'SENTRY_AUTH_TOKEN',
+];
 
 const problems = [];
 
@@ -36,7 +43,7 @@ const walk = (dir) => {
 
 for (const file of PUBLIC_DIRS.flatMap(walk)) {
   const text = readFileSync(file, 'latin1');
-  if (KEY_PATTERN.test(text)) problems.push(`${file} contains an Anthropic key pattern`);
+  if (KEY_PATTERN.test(text)) problems.push(`${file} contains a model API key pattern`);
   for (const [name, value] of values) {
     if (text.includes(value)) problems.push(`${file} contains the value of ${name}`);
   }
