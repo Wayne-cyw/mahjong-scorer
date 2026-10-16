@@ -21,6 +21,12 @@ export interface FirstDealerProps {
 }
 
 type Mode = 'choose' | 'app-roll' | 'physical';
+type RollMap = Partial<Record<Seat, number>>;
+type InputMap = Partial<Record<Seat, string>>;
+
+/** Faces of one die; a physical roll outside this range is rejected. */
+const DIE_MIN = 1;
+const DIE_MAX = 6;
 
 /**
  * Given the seats still in contention and one roll per seat (same order), returns the seats
@@ -34,33 +40,29 @@ export function nextCandidates(candidates: readonly Seat[], rolls: readonly numb
 
 const WIND_GLYPH = ['東', '南', '西', '北'] as const;
 
-const emptyRollMap = (): Partial<Record<Seat, number>> => ({});
-const emptyInputMap = (): Partial<Record<Seat, string>> => ({});
+const isDieFace = (roll: number): boolean =>
+  Number.isInteger(roll) && roll >= DIE_MIN && roll <= DIE_MAX;
+
+const INPUT_CLASS =
+  'bg-cream-deep border-cream-edge text-foreground focus-visible:border-sign focus-visible:bg-cream h-14 w-20 rounded-md border-b-4 px-3 text-center text-xl font-bold outline-none disabled:opacity-50';
 
 /**
- * The first-dealer step: roll in the app, enter a physical roll, or tap a seat directly
- * (PD-05). Both rolling methods re-roll only the players tied for the top roll.
+ * Roll-off state: who is still in contention, their latest rolls and any typed physical
+ * rolls. Each settled round either reports the single winner or narrows to the tied seats.
  */
-export function FirstDealer({ players, onChosen, disabled = false }: FirstDealerProps) {
-  const [mode, setMode] = useState<Mode>('choose');
+function useRollOff(
+  players: readonly FirstDealerPlayer[],
+  chooseSeat: (seat: Seat) => void,
+  disabled: boolean,
+) {
   const [candidates, setCandidates] = useState<Seat[]>(players.map((p) => p.seat));
-  const [lastRolls, setLastRolls] = useState<Partial<Record<Seat, number>>>(emptyRollMap());
+  const [lastRolls, setLastRolls] = useState<RollMap>({});
   const [rollRound, setRollRound] = useState(0);
-  const [physicalInputs, setPhysicalInputs] =
-    useState<Partial<Record<Seat, string>>>(emptyInputMap());
-
-  const nameOf = (seat: Seat): string =>
-    players.find((p) => p.seat === seat)?.name ?? `Seat ${seat + 1}`;
-
-  /** Reports the chosen seat, unless a submission is already in flight (guards double-taps). */
-  function chooseSeat(seat: Seat): void {
-    if (disabled) return;
-    onChosen(seat);
-  }
+  const [physicalInputs, setPhysicalInputs] = useState<InputMap>({});
 
   function settleRound(rolls: number[]): void {
     const winners = nextCandidates(candidates, rolls);
-    const rollMap: Partial<Record<Seat, number>> = { ...lastRolls };
+    const rollMap: RollMap = { ...lastRolls };
     candidates.forEach((seat, i) => {
       rollMap[seat] = rolls[i];
     });
@@ -71,135 +73,232 @@ export function FirstDealer({ players, onChosen, disabled = false }: FirstDealer
       return;
     }
     setCandidates(winners);
-    setPhysicalInputs(emptyInputMap());
+    setPhysicalInputs({});
   }
 
   function rollInApp(): void {
     if (disabled) return;
-    const rolls = candidates.map(() => rollDie());
-    settleRound(rolls);
+    settleRound(candidates.map(() => rollDie()));
   }
 
   function submitPhysical(): void {
     if (disabled) return;
     const rolls = candidates.map((seat) => Number(physicalInputs[seat]));
-    if (rolls.some((r) => !Number.isInteger(r) || r < 1 || r > 6)) return;
+    if (!rolls.every(isDieFace)) return;
     settleRound(rolls);
   }
 
-  const rerolling = candidates.length < players.length;
-  const inputClass =
-    'bg-cream-deep border-cream-edge text-foreground focus-visible:border-sign focus-visible:bg-cream h-14 w-20 rounded-md border-b-4 px-3 text-center text-xl font-bold outline-none disabled:opacity-50';
+  const setPhysicalInput = (seat: Seat, value: string): void =>
+    setPhysicalInputs((prev) => ({ ...prev, [seat]: value }));
+
+  return {
+    candidates,
+    lastRolls,
+    rollRound,
+    physicalInputs,
+    rerolling: candidates.length < players.length,
+    rollInApp,
+    submitPhysical,
+    setPhysicalInput,
+  };
+}
+
+function ChooseMethod({
+  players,
+  disabled,
+  onMode,
+  onChoose,
+}: {
+  players: readonly FirstDealerPlayer[];
+  disabled: boolean;
+  onMode: (mode: Mode) => void;
+  onChoose: (seat: Seat) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <Button
+        type="button"
+        onClick={() => onMode('app-roll')}
+        disabled={disabled}
+        className="h-14 px-4 text-lg"
+      >
+        Roll in the app
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => onMode('physical')}
+        disabled={disabled}
+        className="h-14 px-4 text-lg"
+      >
+        Enter a physical roll
+      </Button>
+      <p className="text-ink-dim mt-2 text-base">Or tap a seat to choose directly:</p>
+      <div className="grid grid-cols-2 gap-3">
+        {players.map((p) => (
+          <Button
+            key={p.seat}
+            type="button"
+            variant="secondary"
+            onClick={() => onChoose(p.seat)}
+            disabled={disabled}
+            className="font-display h-16 min-w-0 justify-start gap-3 px-3 text-lg font-black"
+          >
+            <GlyphTile glyph={WIND_GLYPH[p.seat]} size="sm" />
+            <span className="truncate">{p.name}</span>
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AppRoll({
+  candidates,
+  lastRolls,
+  rollRound,
+  rerolling,
+  disabled,
+  nameOf,
+  onRoll,
+}: {
+  candidates: readonly Seat[];
+  lastRolls: RollMap;
+  rollRound: number;
+  rerolling: boolean;
+  disabled: boolean;
+  nameOf: (seat: Seat) => string;
+  onRoll: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-base">
+        {rerolling ? 'Tied — rolling again for: ' : 'Rolling for: '}
+        {candidates.map(nameOf).join(', ')}
+      </p>
+      <Button type="button" onClick={onRoll} disabled={disabled} className="h-14 px-4 text-lg">
+        Roll dice
+      </Button>
+      <ul className="flex flex-col gap-2">
+        {candidates.map((seat) => (
+          <li
+            key={seat}
+            className="bg-cream-raised flex min-h-16 items-center justify-between gap-3 rounded-md px-4"
+          >
+            <span className="font-display text-lg font-black">
+              {nameOf(seat)}: {lastRolls[seat] ?? '—'}
+            </span>
+            {lastRolls[seat] !== undefined && (
+              <Die key={`${seat}-${rollRound}`} value={lastRolls[seat]!} index={seat} tumble />
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PhysicalRoll({
+  candidates,
+  inputs,
+  rerolling,
+  disabled,
+  nameOf,
+  onInput,
+  onSubmit,
+}: {
+  candidates: readonly Seat[];
+  inputs: InputMap;
+  rerolling: boolean;
+  disabled: boolean;
+  nameOf: (seat: Seat) => string;
+  onInput: (seat: Seat, value: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-base">
+        {rerolling ? 'Tied — enter a new roll for: ' : 'Enter each roll (1-6): '}
+        {rerolling ? candidates.map(nameOf).join(', ') : ''}
+      </p>
+      {candidates.map((seat) => (
+        <div key={seat} className="flex items-center justify-between gap-3">
+          <label htmlFor={`roll-${seat}`} className="font-display text-lg font-black">
+            {nameOf(seat)}
+          </label>
+          <input
+            id={`roll-${seat}`}
+            type="number"
+            inputMode="numeric"
+            min={DIE_MIN}
+            max={DIE_MAX}
+            value={inputs[seat] ?? ''}
+            onChange={(event) => onInput(seat, event.target.value)}
+            disabled={disabled}
+            className={INPUT_CLASS}
+          />
+        </div>
+      ))}
+      <Button type="button" onClick={onSubmit} disabled={disabled} className="h-14 px-4 text-lg">
+        Submit rolls
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * The first-dealer step: roll in the app, enter a physical roll, or tap a seat directly
+ * (PD-05). Both rolling methods re-roll only the players tied for the top roll.
+ */
+export function FirstDealer({ players, onChosen, disabled = false }: FirstDealerProps) {
+  const [mode, setMode] = useState<Mode>('choose');
+
+  /** Reports the chosen seat, unless a submission is already in flight (guards double-taps). */
+  function chooseSeat(seat: Seat): void {
+    if (disabled) return;
+    onChosen(seat);
+  }
+
+  const rollOff = useRollOff(players, chooseSeat, disabled);
+
+  const nameOf = (seat: Seat): string =>
+    players.find((p) => p.seat === seat)?.name ?? `Seat ${seat + 1}`;
 
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-display text-xl font-black">First dealer</h2>
 
       {mode === 'choose' && (
-        <div className="flex flex-col gap-3">
-          <Button
-            type="button"
-            onClick={() => setMode('app-roll')}
-            disabled={disabled}
-            className="h-14 px-4 text-lg"
-          >
-            Roll in the app
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setMode('physical')}
-            disabled={disabled}
-            className="h-14 px-4 text-lg"
-          >
-            Enter a physical roll
-          </Button>
-          <p className="text-ink-dim mt-2 text-base">Or tap a seat to choose directly:</p>
-          <div className="grid grid-cols-2 gap-3">
-            {players.map((p) => (
-              <Button
-                key={p.seat}
-                type="button"
-                variant="secondary"
-                onClick={() => chooseSeat(p.seat)}
-                disabled={disabled}
-                className="font-display h-16 min-w-0 justify-start gap-3 px-3 text-lg font-black"
-              >
-                <GlyphTile glyph={WIND_GLYPH[p.seat]} size="sm" />
-                <span className="truncate">{p.name}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
+        <ChooseMethod
+          players={players}
+          disabled={disabled}
+          onMode={setMode}
+          onChoose={chooseSeat}
+        />
       )}
 
       {mode === 'app-roll' && (
-        <div className="flex flex-col gap-4">
-          <p className="text-base">
-            {rerolling ? 'Tied — rolling again for: ' : 'Rolling for: '}
-            {candidates.map(nameOf).join(', ')}
-          </p>
-          <Button
-            type="button"
-            onClick={rollInApp}
-            disabled={disabled}
-            className="h-14 px-4 text-lg"
-          >
-            Roll dice
-          </Button>
-          <ul className="flex flex-col gap-2">
-            {candidates.map((seat) => (
-              <li
-                key={seat}
-                className="bg-cream-raised flex min-h-16 items-center justify-between gap-3 rounded-md px-4"
-              >
-                <span className="font-display text-lg font-black">
-                  {nameOf(seat)}: {lastRolls[seat] ?? '—'}
-                </span>
-                {lastRolls[seat] !== undefined && (
-                  <Die key={`${seat}-${rollRound}`} value={lastRolls[seat]!} index={seat} tumble />
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <AppRoll
+          candidates={rollOff.candidates}
+          lastRolls={rollOff.lastRolls}
+          rollRound={rollOff.rollRound}
+          rerolling={rollOff.rerolling}
+          disabled={disabled}
+          nameOf={nameOf}
+          onRoll={rollOff.rollInApp}
+        />
       )}
 
       {mode === 'physical' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-base">
-            {rerolling ? 'Tied — enter a new roll for: ' : 'Enter each roll (1-6): '}
-            {rerolling ? candidates.map(nameOf).join(', ') : ''}
-          </p>
-          {candidates.map((seat) => (
-            <div key={seat} className="flex items-center justify-between gap-3">
-              <label htmlFor={`roll-${seat}`} className="font-display text-lg font-black">
-                {nameOf(seat)}
-              </label>
-              <input
-                id={`roll-${seat}`}
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={6}
-                value={physicalInputs[seat] ?? ''}
-                onChange={(event) =>
-                  setPhysicalInputs((prev) => ({ ...prev, [seat]: event.target.value }))
-                }
-                disabled={disabled}
-                className={inputClass}
-              />
-            </div>
-          ))}
-          <Button
-            type="button"
-            onClick={submitPhysical}
-            disabled={disabled}
-            className="h-14 px-4 text-lg"
-          >
-            Submit rolls
-          </Button>
-        </div>
+        <PhysicalRoll
+          candidates={rollOff.candidates}
+          inputs={rollOff.physicalInputs}
+          rerolling={rollOff.rerolling}
+          disabled={disabled}
+          nameOf={nameOf}
+          onInput={rollOff.setPhysicalInput}
+          onSubmit={rollOff.submitPhysical}
+        />
       )}
     </div>
   );
