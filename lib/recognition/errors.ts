@@ -8,6 +8,7 @@ export const RECOGNIZE_ERRORS = {
   'invalid-model-output': 502,
   upstream: 502,
   unavailable: 503,
+  'budget-exhausted': 503,
   timeout: 504,
 } as const;
 
