@@ -26,12 +26,15 @@ const STATE_CLASS: Record<TileState, string> = {
   selected: '-translate-y-2 ring-2 ring-lacquer ring-offset-1 ring-offset-cream',
 };
 
+/** Sprite URL; honours a Next `basePath` exposed as NEXT_PUBLIC_BASE_PATH (empty by default). */
+export const TILE_SPRITE = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/tiles.svg`;
+
 /** One tile drawn from the generated sprite (`public/tiles.svg`). */
 export function Tile({ code, size = 'md', state = 'normal', decorative, className }: TileProps) {
   const { w, h } = SIZE_PX[size];
   const name = tileName(code);
-  const label =
-    state === 'uncertain' ? `${name.en} ${name.zh} (uncertain)` : `${name.en} ${name.zh}`;
+  const suffix = state === 'normal' ? '' : ` (${state})`;
+  const label = `${name.en} ${name.zh}${suffix}`;
   return (
     <svg
       width={w}
@@ -47,7 +50,7 @@ export function Tile({ code, size = 'md', state = 'normal', decorative, classNam
         className,
       )}
     >
-      <use href={`/tiles.svg#${code}`} />
+      <use href={`${TILE_SPRITE}#${code}`} />
     </svg>
   );
 }
