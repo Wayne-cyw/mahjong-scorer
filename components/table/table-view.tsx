@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { RotateCw } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { handLabel, seatWind, wallToBreak } from '@/lib/game';
 import type { Seat } from '@/lib/tiles';
@@ -9,12 +8,16 @@ import { useGameStore } from '@/stores/game-store';
 import { Compass, SLOTS, seatAtSlot, type Slot } from '@/components/hk/compass';
 import { Button } from '@/components/ui/button';
 import { DicePanel } from '@/components/dice/dice-panel';
-import { OverrideSheet, type OverrideValues } from './override-sheet';
+import { OverrideSheet } from './override-sheet';
 import { RoundMarker } from './round-marker';
 import { seatNames } from './seat-names';
 import { SeatCard, WIND_LABEL } from './seat-card';
+import { ActionBar, PanelSection, RotateButton, panelMotion } from './table-parts';
+import { useTableActions } from './use-table-actions';
 
-const ORIENTATIONS = [0, 90, 180, 270] as const;
+/** Table rotations in degrees, one per seat; each tap of "Rotate" advances one step. */
+const ORIENTATION_DEGREES = [0, 90, 180, 270] as const;
+const ORIENTATION_STEPS = ORIENTATION_DEGREES.length;
 
 /** The seat whose wall the last roll breaks, or null when there is no usable roll. */
 function breakingSeat(dealer: Seat, total: number | undefined): Seat | null {
@@ -25,13 +28,6 @@ function breakingSeat(dealer: Seat, total: number | undefined): Seat | null {
     return null;
   }
 }
-
-const panel = {
-  initial: { opacity: 0, y: 14, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: 8 },
-  transition: { type: 'spring', stiffness: 380, damping: 30 },
-} as const;
 
 export interface TableViewProps {
   /** Display name for each seated player, keyed by player id. Falls back to "Player N" when missing. */
@@ -60,42 +56,21 @@ export function TableView({
   onGameEnded,
 }: TableViewProps) {
   const state = useGameStore((s) => s.state);
-  const endGame = useGameStore((s) => s.endGame);
-  const overrideState = useGameStore((s) => s.overrideState);
   const storeError = useGameStore((s) => s.error);
-  const [confirmingEnd, setConfirmingEnd] = useState(false);
-  const [overriding, setOverriding] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const {
+    confirmingEnd,
+    setConfirmingEnd,
+    overriding,
+    setOverriding,
+    actionError,
+    finish,
+    applyOverride,
+  } = useTableActions(onGameEnded);
   const [orientationIndex, setOrientationIndex] = useState(0);
-  const orientation = ORIENTATIONS[orientationIndex % ORIENTATIONS.length] ?? 0;
+  const step = orientationIndex % ORIENTATION_STEPS;
+  const orientation = ORIENTATION_DEGREES[step] ?? 0;
 
-  const rotate = () => setOrientationIndex((i) => (i + 1) % ORIENTATIONS.length);
-
-  const handleHandOver = () => {
-    onHandOver?.();
-  };
-
-  const finish = async (reason: 'completed' | 'manual'): Promise<void> => {
-    setActionError(null);
-    try {
-      // A refusal resolves false and sets the store's error, shown below.
-      if (!(await endGame(reason))) return;
-      setConfirmingEnd(false);
-      onGameEnded?.();
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  const applyOverride = async (values: OverrideValues): Promise<void> => {
-    setActionError(null);
-    try {
-      if (!(await overrideState(values))) return;
-      setOverriding(false);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : String(error));
-    }
-  };
+  const rotate = () => setOrientationIndex((i) => (i + 1) % ORIENTATION_STEPS);
 
   const playerIdBySeat = new Map<Seat, string>();
   for (const [playerId, seat] of Object.entries(state.seatOf)) {
@@ -114,7 +89,7 @@ export function TableView({
   const breaking = inProgress ? breakingSeat(state.dealer, rollTotal) : null;
 
   const seatFor = (slot: Slot) => {
-    const seat = seatAtSlot(slot, orientationIndex % 4);
+    const seat = seatAtSlot(slot, step);
     const playerId = playerIdBySeat.get(seat);
     const name = (playerId && playerNames[playerId]) || `Player ${seat + 1}`;
     return (
@@ -149,23 +124,7 @@ export function TableView({
             <p className="font-display text-lg leading-tight font-black">
               {roundLabel.en} round ({roundLabel.zh}), hand {hand}, dealer repeat {repeat}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={rotate}
-              className="size-12 shrink-0 px-0"
-              aria-label="Rotate table"
-            >
-              <m.span
-                key={orientationIndex}
-                initial={{ rotate: -90 }}
-                animate={{ rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                className="inline-flex"
-              >
-                <RotateCw className="size-6" aria-hidden="true" />
-              </m.span>
-            </Button>
+            <RotateButton turn={orientationIndex} onRotate={rotate} />
           </header>
 
           <Compass
@@ -179,11 +138,7 @@ export function TableView({
 
           <AnimatePresence>
             {state.status === 'complete' && (
-              <m.section
-                key="complete"
-                {...panel}
-                className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
-              >
+              <PanelSection key="complete">
                 <p className="font-display text-xl font-black">Game complete — end game?</p>
                 <Button
                   type="button"
@@ -192,15 +147,11 @@ export function TableView({
                 >
                   End game
                 </Button>
-              </m.section>
+              </PanelSection>
             )}
 
             {confirmingEnd && (
-              <m.section
-                key="confirm-end"
-                {...panel}
-                className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
-              >
+              <PanelSection key="confirm-end">
                 <p className="font-display text-xl font-black">End the game now?</p>
                 <div className="flex gap-3">
                   <Button
@@ -220,11 +171,11 @@ export function TableView({
                     Confirm end
                   </Button>
                 </div>
-              </m.section>
+              </PanelSection>
             )}
 
             {overriding && (
-              <m.div key="override" {...panel}>
+              <m.div key="override" {...panelMotion}>
                 <OverrideSheet
                   seatNames={names}
                   initial={{
@@ -247,47 +198,13 @@ export function TableView({
         </div>
       </div>
 
-      <div className="bg-background sticky bottom-0 -mx-4 mt-auto flex flex-col gap-3 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <span className="trim-canvas -mx-4 block h-2" aria-hidden="true" />
-        {inProgress && (
-          <Button
-            type="button"
-            onClick={handleHandOver}
-            className="h-16 w-full px-4 text-2xl tracking-wide"
-          >
-            <span aria-hidden="true" className="font-display font-black">
-              胡
-            </span>
-            Hand over
-          </Button>
-        )}
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onHistory}
-            className="h-12 flex-1 px-3 text-base"
-          >
-            History
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOverriding(true)}
-            className="h-12 flex-1 px-3 text-base"
-          >
-            Override
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => setConfirmingEnd(true)}
-            className="h-12 flex-1 px-3 text-base"
-          >
-            End now
-          </Button>
-        </div>
-      </div>
+      <ActionBar
+        inProgress={inProgress}
+        onHandOver={onHandOver}
+        onHistory={onHistory}
+        onOverride={() => setOverriding(true)}
+        onEndNow={() => setConfirmingEnd(true)}
+      />
     </div>
   );
 }

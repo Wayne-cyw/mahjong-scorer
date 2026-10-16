@@ -85,6 +85,8 @@ const MAX_APPEND_ATTEMPTS = 3;
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+type GameStatus = GameState['status'];
+
 /**
  * An action's guard and payload builder, run against a game's current state:
  * returns the event to append, or `{ refuse }` with the reason it may not be.
@@ -92,12 +94,64 @@ const errorMessage = (error: unknown): string =>
  */
 type Plan = (state: GameState) => { payload: GameEvent } | { refuse: string };
 
-const captureHandRecorded = ({ method, corrections, startedAt }: HandAnalytics): void => {
+const NOT_IN_PROGRESS = { refuse: 'Game is not in progress' } as const;
+const LEFT_SETUP = { refuse: 'Game has already left setup' } as const;
+
+/** Emits `hand_recorded` for a won or drawn hand; defaults describe a manual entry. */
+const emitHandAnalytics = ({ method, corrections, startedAt }: HandAnalytics = {}): void => {
   analytics.capture('hand_recorded', {
     method: method ?? 'manual',
     corrections: corrections ?? 0,
     durationMs: startedAt === undefined ? 0 : Math.max(0, Math.round(Date.now() - startedAt)),
   });
+};
+
+/** Emits the lifecycle events implied by a status transition (setup→playing, →complete). */
+const emitLifecycleAnalytics = (previous: GameStatus, next: GameStatus): void => {
+  if (previous === 'setup' && next === 'playing') analytics.capture('game_started');
+  if (previous !== 'complete' && next === 'complete') analytics.capture('game_completed');
+};
+
+const emitHandEdited = (): void => analytics.capture('hand_edited');
+
+type RecordWinArgs = Parameters<GameStoreState['recordWin']>[0];
+type WinDetails = Omit<RecordWinArgs, keyof HandAnalytics>;
+
+/** Splits `recordWin` args into the hand itself and the analytics-only context. */
+const splitWinArgs = ({
+  method,
+  corrections,
+  startedAt,
+  ...win
+}: RecordWinArgs): { win: WinDetails; context: HandAnalytics } => ({
+  win,
+  context: { method, corrections, startedAt },
+});
+
+/** Builds the `HandWon` payload for a playing game, or the reason it is refused. */
+const planWin = (
+  state: GameState,
+  { winner, discarder, fan, hand, breakdown, engineVersion }: WinDetails,
+): ReturnType<Plan> => {
+  if (state.status !== 'playing') return NOT_IN_PROGRESS;
+  const ruleset = state.ruleset;
+  if (ruleset === null) return { refuse: 'No ruleset for this game' };
+  const manual = hand === undefined;
+  const basePoints = basePointsFor(fan, ruleset);
+  const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
+  return {
+    payload: {
+      type: 'HandWon',
+      winner,
+      discarder,
+      hand,
+      fan,
+      breakdown: breakdown ?? [],
+      payments,
+      engineVersion: manual ? MANUAL_ENGINE_VERSION : (engineVersion ?? MANUAL_ENGINE_VERSION),
+      manual,
+    },
+  };
 };
 
 const nextSeqOf = (events: readonly StoredEvent[]): number => {
@@ -155,11 +209,7 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
     // Analytics fire only after a durable append, never for a refused action.
     // `capture` is a no-op without consent and never throws.
     onAppended?.();
-    const nextStatus = get().state.status;
-    if (previousStatus === 'setup' && nextStatus === 'playing') analytics.capture('game_started');
-    if (previousStatus !== 'complete' && nextStatus === 'complete') {
-      analytics.capture('game_completed');
-    }
+    emitLifecycleAnalytics(previousStatus, get().state.status);
 
     // Keep the denormalized `games` row (used for fast listing) in sync with the
     // replayed lifecycle status, but only write when it actually changed. This is
@@ -176,9 +226,6 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
     }
     return true;
   };
-
-  const NOT_IN_PROGRESS = { refuse: 'Game is not in progress' } as const;
-  const LEFT_SETUP = { refuse: 'Game has already left setup' } as const;
 
   return {
     gameId: null,
@@ -239,52 +286,26 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
         };
       }),
 
-    recordWin: ({ winner, discarder, fan, hand, breakdown, engineVersion, ...analyticsArgs }) =>
-      commit(
-        (state) => {
-          if (state.status !== 'playing') return NOT_IN_PROGRESS;
-          const ruleset = state.ruleset;
-          if (ruleset === null) return { refuse: 'No ruleset for this game' };
-          const manual = hand === undefined;
-          const basePoints = basePointsFor(fan, ruleset);
-          const payments = settle({ winner, discarder, basePoints, model: ruleset.payment });
-          return {
-            payload: {
-              type: 'HandWon',
-              winner,
-              discarder,
-              hand,
-              fan,
-              breakdown: breakdown ?? [],
-              payments,
-              engineVersion: manual
-                ? MANUAL_ENGINE_VERSION
-                : (engineVersion ?? MANUAL_ENGINE_VERSION),
-              manual,
-            },
-          };
-        },
-        () => captureHandRecorded(analyticsArgs),
-      ),
+    recordWin: (args) => {
+      const { win, context } = splitWinArgs(args);
+      return commit(
+        (state) => planWin(state, win),
+        () => emitHandAnalytics(context),
+      );
+    },
 
     recordDraw: (args) =>
       commit(
         (state) =>
           state.status !== 'playing' ? NOT_IN_PROGRESS : { payload: { type: 'HandDrawn' } },
-        () => captureHandRecorded(args ?? {}),
+        () => emitHandAnalytics(args),
       ),
 
     voidHand: (targetId) =>
-      commit(
-        () => ({ payload: { type: 'HandVoided', targetId } }),
-        () => analytics.capture('hand_edited'),
-      ),
+      commit(() => ({ payload: { type: 'HandVoided', targetId } }), emitHandEdited),
 
     correctHand: (targetId, replacement) =>
-      commit(
-        () => ({ payload: { type: 'HandCorrected', targetId, replacement } }),
-        () => analytics.capture('hand_edited'),
-      ),
+      commit(() => ({ payload: { type: 'HandCorrected', targetId, replacement } }), emitHandEdited),
 
     overrideState: ({ dealer, prevailing, dealerRepeat }) =>
       commit(() => ({ payload: { type: 'StateOverridden', dealer, prevailing, dealerRepeat } })),
@@ -294,15 +315,7 @@ export const useGameStore = create<GameStoreState>()((set, get) => {
     loadGame: async (gameId) => {
       set({ loading: true, error: null });
       try {
-        const events = await loadEvents(gameId);
-        set({
-          gameId,
-          events,
-          state: replay(events),
-          history: deriveHistory(events),
-          loading: false,
-          error: null,
-        });
+        set({ gameId, ...derive(await loadEvents(gameId)), loading: false, error: null });
       } catch (error) {
         set({ loading: false, error: errorMessage(error) });
         throw error;
