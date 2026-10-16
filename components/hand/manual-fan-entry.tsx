@@ -10,9 +10,11 @@ export interface ManualFanEntryProps {
 }
 
 /**
- * Direct fan entry (this phase's only scoring path; ADR-40): a stepper from 0
- * up to `capFan`, with Confirm gated elsewhere on reaching `minFan`. Phase 2
- * replaces this with the tile review screen.
+ * "Enter fan directly" fallback beside the tile review screen (ADR-40). It
+ * exists because recognition or the tile editor can't always produce a
+ * scorable hand (bad photo, unusual house rule), and a table still has to
+ * settle the round. A stepper from 0 up to `capFan`; Confirm is gated
+ * elsewhere on reaching `minFan`.
  */
 export function ManualFanEntry({ fan, minFan, capFan, onChange }: ManualFanEntryProps) {
   const decrement = (): void => onChange(Math.max(0, fan - 1));

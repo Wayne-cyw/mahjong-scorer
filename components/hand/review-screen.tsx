@@ -2,18 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import type { FanLine, Ruleset, ScoreResult, WinningHand } from '@/lib/scoring';
-import { scoreHand } from '@/lib/scoring';
+import { ENGINE_VERSION, scoreHand } from '@/lib/scoring';
 import type { Seat, Wind } from '@/lib/tiles';
 import { draftToHand, emptyDraft, seatWind, type HandDraft } from '@/lib/game';
 import { countCorrections, type UncertainTiles } from '@/lib/recognition';
-import packageInfo from '@/package.json';
 import { Button } from '@/components/ui/button';
 import { FanBreakdown } from '@/components/hand/fan-breakdown';
 import { FlagsPanel } from '@/components/hand/flags-panel';
 import { HandEditor } from '@/components/hand/hand-editor';
 import { MeldEditor } from '@/components/hand/meld-editor';
-
-const ENGINE_VERSION: string = packageInfo.version;
 
 export interface ReviewConfirmation {
   hand: WinningHand;
