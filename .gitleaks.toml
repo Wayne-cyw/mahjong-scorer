@@ -1,0 +1,15 @@
+# Secret scan config (CI job `secrets`). Extends gitleaks' built-in rules.
+title = "mahjong-score-tracker"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[A-Za-z0-9_-]{20,}'''
+keywords = ["sk-ant-"]
+
+[allowlist]
+description = "Placeholders and lockfile hashes"
+paths = ['''pnpm-lock\.yaml$''', '''\.env\.example$''']
