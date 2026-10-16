@@ -17,6 +17,8 @@ let limiter: Limiter | undefined;
 let client: GoogleGenAI | undefined;
 
 const getDeps = (): RecognizeDeps => {
+  // Kill switch: refuse before any key, limiter or model is touched.
+  if (process.env.RECOGNITION_DISABLED === '1') throw new RecognizeError('unavailable');
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new RecognizeError('unavailable');
   limiter ??= createLimiter(process.env);

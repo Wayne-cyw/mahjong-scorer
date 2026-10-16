@@ -130,6 +130,7 @@ const MANUAL = 'Enter the tiles by hand below.';
 export function failureMessage(code: RecognizeErrorCode): string {
   switch (code) {
     case 'unavailable':
+    case 'budget-exhausted':
       return `Photo reading is not available right now (are you offline?). ${MANUAL}`;
     case 'rate-limited':
       return `Too many photos in the last hour. ${MANUAL}`;

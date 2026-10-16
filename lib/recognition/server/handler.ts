@@ -1,6 +1,6 @@
 import { RECOGNIZE_ERRORS, RecognizeError, type RecognizeErrorCode } from '../errors';
 import { recognizeImage, type GeminiClient } from './gemini';
-import type { Limiter } from './rate-limit';
+import { GLOBAL_KEY, type Limiter } from './rate-limit';
 import { checkOrigin, checkUploadHeaders, clientIp, readDeviceId, readImage } from './request';
 
 /** The only thing ever logged for a request: no image, no ids, no addresses (ADR-47, ADR-60). */
@@ -75,8 +75,12 @@ export const handleRecognize = async (
       deviceId === null ? true : await deps.limiter.allow('device', deviceId),
     ];
     if (allowed.includes(false)) throw new RecognizeError('rate-limited');
-
     const image = await readImage(req);
+    // Counted last, after the body is known to be a real image, so refused or unreadable requests
+    // never spend the shared budget.
+    if (!(await deps.limiter.allow('global', GLOBAL_KEY))) {
+      throw new RecognizeError('budget-exhausted');
+    }
     const { result, usage } = await recognizeImage({
       client: deps.client,
       model: deps.model,
