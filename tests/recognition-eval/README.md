@@ -67,7 +67,9 @@ metadata dropped) before they are sent. Nothing is written to disk.
   Output tokens include thinking tokens, which are billed as output. Failed requests report no usage and are left
   out of the average, though they may still have been billed, so the real figure can be higher.
 - **Spend ceiling**: the run stops once estimated spend reaches `--max-cost` (exit code `1`).
-  It counts only requests that returned usage, so treat it as a floor on real spend.
+  Requests that returned usage count at their real cost; ones that reached the model but gave
+  unusable output (a cut-off, a schema violation, a timeout) count at an assumed worst case of
+  3000 input and 1024 output tokens, so a bad prompt or model name cannot run past the ceiling.
 - A breakdown by `set` and by `lighting`, and the list of failed photos.
 
 The Phase 3 gate also needs a 10 s p95 round trip and a 15 s median per hand in table tests;
@@ -80,4 +82,5 @@ this script measures model latency only, not the full phone-to-route round trip.
 photo folder, no `labels.json`, a `labels.json` that is not valid JSON or lists a photo twice, a
 bad flag value, a missing `--input-price` or `--output-price`, or no `GEMINI_API_KEY`. The message says what is missing. `1` the run stopped
 early or hit an unexpected error: after 5 photos in a row fail with `upstream` (usually a rate
-limit, an invalid key or an outage) it stops and reports what it has.
+limit, an invalid key or an outage), or when estimated spend reaches `--max-cost` with photos
+left, it stops and reports what it has.

@@ -24,10 +24,18 @@ import {
   type Summary,
 } from '@/lib/recognition/eval-metrics';
 import { RecognizeError } from '@/lib/recognition/errors';
-import { recognizeImage } from '@/lib/recognition/server/gemini';
+import { MAX_OUTPUT_TOKENS, recognizeImage } from '@/lib/recognition/server/gemini';
 
 const DEFAULT_MODEL = process.env.RECOGNITION_MODEL || 'gemini-3.8-flash';
 const HERE = new URL('.', import.meta.url).pathname;
+
+/**
+ * A request that reached the model but produced unusable output (a cut-off, a schema violation, a
+ * timeout) is billed yet reports no usage. Charge it a conservative worst case so --max-cost still
+ * holds when a bad prompt or model name makes every call fail this way.
+ */
+const BILLED_FAILURES: ReadonlySet<string> = new Set(['invalid-model-output', 'timeout']);
+const ASSUMED_FAILED_INPUT_TOKENS = 3000;
 
 /** The 1568 px / 0.85 JPEG pipeline of the phone (ADR-42), so the eval sees what the route sees. */
 const prepare = async (path: string, maxEdge: number): Promise<Uint8Array> => {
@@ -198,15 +206,21 @@ const main = async (): Promise<void> => {
     const mark = outcome.ok ? (outcome.exact ? 'ok  ' : 'diff') : 'FAIL';
     console.log(`[${i + 1}/${labels.length}] ${mark} ${label.file} (${ms(outcome.latencyMs)})`);
 
-    // Failed requests report no usage, so this under-counts; --max-cost is a floor, not a promise.
-    if (outcome.ok) spent += estimateCost(outcome.inputTokens, outcome.outputTokens, prices);
+    if (outcome.ok) {
+      spent += estimateCost(outcome.inputTokens, outcome.outputTokens, prices);
+    } else if (BILLED_FAILURES.has(outcome.error)) {
+      spent += estimateCost(ASSUMED_FAILED_INPUT_TOKENS, MAX_OUTPUT_TOKENS, prices);
+    }
     if (spent >= maxCost) {
-      stoppedEarly = true;
-      console.log(
-        `\nStopping: estimated spend $${spent.toFixed(4)} reached --max-cost $${maxCost}. ` +
-          'Raise --max-cost to run the remaining photos. The results below cover only the ' +
-          'photos already run.',
-      );
+      // Reaching the ceiling on the last photo is a finished run, not an early stop.
+      if (i < labels.length - 1) {
+        stoppedEarly = true;
+        console.log(
+          `\nStopping: estimated spend $${spent.toFixed(4)} reached --max-cost $${maxCost}. ` +
+            'Raise --max-cost to run the remaining photos. The results below cover only the ' +
+            'photos already run.',
+        );
+      }
       break;
     }
 

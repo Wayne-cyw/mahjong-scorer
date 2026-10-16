@@ -11,7 +11,7 @@ export type GeminiClient = Pick<GoogleGenAI, 'models'>;
 /** Overall budget for the model call, retries included (ADR-43). */
 export const MODEL_TIMEOUT_MS = 20_000;
 /** Hard cap on billed output. A hand is well under 200 tokens of JSON; this leaves headroom. */
-const MAX_OUTPUT_TOKENS = 1024;
+export const MAX_OUTPUT_TOKENS = 1024;
 
 export interface RecognizeOutcome {
   result: RecognitionResult;
