@@ -16,7 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "size": "size-limit",
-    "eval": "tsx tests/recognition-eval/run.ts"
+    "eval": "tsx tests/recognition-eval/run.ts",
+    "check:secrets": "node scripts/check-public-bundle.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.29.1",
