@@ -13,6 +13,9 @@ function readFileText(file: File): Promise<string> {
   });
 }
 
+/** Time the browser gets to start the download before its blob URL is released. */
+const REVOKE_URL_DELAY_MS = 1000;
+
 export interface BackupPanelProps {
   /** Called after a successful import so the caller can refresh what it shows. */
   onImported?: () => void;
@@ -38,7 +41,7 @@ export function BackupPanel({ onImported }: BackupPanelProps) {
         link.href = url;
         link.download = fileName;
         link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => URL.revokeObjectURL(url), REVOKE_URL_DELAY_MS);
       }
       setMessage('Backup exported.');
     } catch (err) {

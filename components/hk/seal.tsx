@@ -1,6 +1,7 @@
 'use client';
 
 import { m } from 'motion/react';
+import { SPRING_BOUNCE } from '@/components/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface SealProps {
@@ -17,7 +18,7 @@ export function Seal({ glyph, label, className }: SealProps) {
     <m.span
       initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
       animate={{ scale: 1, rotate: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+      transition={SPRING_BOUNCE}
       className={cn(
         'bg-lacquer text-ivory font-display border-lacquer-deep inline-flex h-11 w-8 shrink-0 items-center justify-center rounded-[6px] border-b-4 text-xl leading-none font-black',
         className,

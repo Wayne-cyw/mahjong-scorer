@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, m } from 'motion/react';
+import { SPRING_SNAP } from '@/components/motion/tokens';
 import { cn } from '@/lib/utils';
 
 export interface ScoreFlipProps {
@@ -46,7 +47,7 @@ export function ScoreFlip({ value, className, label }: ScoreFlipProps) {
           initial="enter"
           animate="show"
           exit="leave"
-          transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+          transition={SPRING_SNAP}
         >
           {value}
         </m.span>
