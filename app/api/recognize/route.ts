@@ -5,6 +5,7 @@ import {
   logToConsole,
   type RecognizeDeps,
 } from '@/lib/recognition/server/handler';
+import { resolveFallbackModel } from '@/lib/recognition/server/fallback-model';
 import { createLimiter, type Limiter } from '@/lib/recognition/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ const getDeps = (): RecognizeDeps => {
     client,
     limiter,
     model: process.env.RECOGNITION_MODEL || DEFAULT_MODEL,
+    fallbackModel: resolveFallbackModel(process.env.RECOGNITION_FALLBACK_MODEL),
     log: logToConsole,
   };
 };

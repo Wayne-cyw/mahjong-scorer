@@ -219,6 +219,86 @@ describe('recognizeImage', () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
+  describe('fallback model', () => {
+    const models = (create: ReturnType<typeof vi.fn>) =>
+      create.mock.calls.map((c) => (c[0] as { model: string }).model);
+
+    it('sends the one retry to the fallback model when the primary is overloaded', async () => {
+      const { client, create } = fakeClient(httpError(503), message());
+      const out = await recognizeImage({
+        client,
+        model: 'primary',
+        fallbackModel: 'fallback',
+        image,
+      });
+      expect(models(create)).toEqual(['primary', 'fallback']);
+      expect(out.model).toBe('fallback');
+      expect(out.result.isMahjongHand).toBe(true);
+    });
+
+    it('uses the primary and reports it when nothing goes wrong', async () => {
+      const { client, create } = fakeClient(message());
+      const out = await recognizeImage({
+        client,
+        model: 'primary',
+        fallbackModel: 'fallback',
+        image,
+      });
+      expect(models(create)).toEqual(['primary']);
+      expect(out.model).toBe('primary');
+    });
+
+    it('never makes more than two calls even when the fallback also fails', async () => {
+      const { client, create } = fakeClient(httpError(503), httpError(503), message());
+      const result = recognizeImage({ client, model: 'p', fallbackModel: 'f', image });
+      expect(await code(result)).toBe('upstream');
+      expect(models(create)).toEqual(['p', 'f']);
+    });
+
+    it('retries the primary again when no fallback is set', async () => {
+      const { client, create } = fakeClient(httpError(503), message());
+      const out = await recognizeImage({ client, model: 'p', image });
+      expect(models(create)).toEqual(['p', 'p']);
+      expect(out.model).toBe('p');
+    });
+
+    it('retries the primary when the fallback is the same model', async () => {
+      const { client, create } = fakeClient(httpError(503), message());
+      await recognizeImage({ client, model: 'p', fallbackModel: 'p', image });
+      expect(models(create)).toEqual(['p', 'p']);
+    });
+
+    it('recognises an overload from the status alone, not the error class', async () => {
+      // Another copy of the SDK's ApiError (as in a bundled server) is not `instanceof` ours.
+      const foreign = Object.assign(new Error('overloaded'), { status: 503 });
+      const { client, create } = fakeClient(foreign, message());
+      const out = await recognizeImage({ client, model: 'p', fallbackModel: 'f', image });
+      expect(models(create)).toEqual(['p', 'f']);
+      expect(out.model).toBe('f');
+    });
+
+    it('does not fall back on a client error or a timeout', async () => {
+      const bad = fakeClient(httpError(400));
+      expect(
+        await code(recognizeImage({ client: bad.client, model: 'p', fallbackModel: 'f', image })),
+      ).toBe('upstream');
+      expect(bad.create).toHaveBeenCalledTimes(1);
+
+      const slow = fakeClient(timeoutError());
+      expect(
+        await code(recognizeImage({ client: slow.client, model: 'p', fallbackModel: 'f', image })),
+      ).toBe('timeout');
+      expect(slow.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fall back when the primary answered with unusable output', async () => {
+      const { client, create } = fakeClient(message({ text: 'sorry' }));
+      const result = recognizeImage({ client, model: 'p', fallbackModel: 'f', image });
+      expect(await code(result)).toBe('invalid-model-output');
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('retries once on an overload and succeeds', async () => {
     const { client, create } = fakeClient(httpError(529), message());
     const out = await recognizeImage({ client, model: 'm', image });
@@ -290,6 +370,21 @@ describe('handleRecognize', () => {
     const serialised = JSON.stringify(lines[0]);
     expect(serialised).not.toContain('device-abc-123');
     expect(serialised).not.toContain('203.0.113.9');
+  });
+
+  it('logs the fallback model when it was the one that answered', async () => {
+    const { client } = fakeClient(httpError(503), message());
+    const lines: LogLine[] = [];
+    const res = await handleRecognize(request(), () => ({
+      client,
+      limiter: createMemoryLimiter(() => 0),
+      model: 'primary',
+      fallbackModel: 'fallback',
+      log: (l: LogLine) => lines.push(l),
+    }));
+    expect(res.status).toBe(200);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.model).toBe('fallback');
   });
 
   it.each([

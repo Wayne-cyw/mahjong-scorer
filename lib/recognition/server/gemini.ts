@@ -1,4 +1,4 @@
-import { ApiError, FinishReason, ThinkingLevel, type GoogleGenAI } from '@google/genai';
+import { FinishReason, ThinkingLevel, type GoogleGenAI } from '@google/genai';
 import { RecognizeError } from '../errors';
 import { buildPrompt } from '../prompt';
 import { recognitionJsonSchema } from '../schema';
@@ -16,30 +16,47 @@ export const MAX_OUTPUT_TOKENS = 1024;
 export interface RecognizeOutcome {
   result: RecognitionResult;
   usage: { inputTokens: number; outputTokens: number };
+  /** The model that answered, which is the fallback when the primary was unavailable. */
+  model: string;
 }
 
-const isRetryable = (err: unknown): boolean =>
-  err instanceof ApiError && (err.status === 429 || err.status >= 500);
+// Read `status` structurally so the retry does not depend on the SDK's error class identity.
+const statusOf = (err: unknown): number | undefined => {
+  const status = (err as { status?: unknown } | null)?.status;
+  return typeof status === 'number' ? status : undefined;
+};
+
+const isRetryable = (err: unknown): boolean => {
+  const status = statusOf(err);
+  return status !== undefined && (status === 429 || status >= 500);
+};
 
 const isTimeout = (err: unknown): boolean =>
   err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError');
 
-/** One model call with a single retry on overload or server error (ADR-49). Never logs the image. */
+/**
+ * One model call with a single retry on overload or server error (ADR-49). The retry goes to
+ * `fallbackModel` when one is set, since a 503 means the primary is short of capacity right now.
+ * Never more than two calls, so the worst-case spend does not change. Never logs the image.
+ */
 export const recognizeImage = async (opts: {
   client: GeminiClient;
   model: string;
+  fallbackModel?: string;
   image: UploadedImage;
   timeoutMs?: number;
 }): Promise<RecognizeOutcome> => {
-  const { client, model, image, timeoutMs = MODEL_TIMEOUT_MS } = opts;
+  const { client, model, fallbackModel, image, timeoutMs = MODEL_TIMEOUT_MS } = opts;
   const deadline = Date.now() + timeoutMs;
   const data = Buffer.from(image.bytes).toString('base64');
 
   let response: Awaited<ReturnType<GeminiClient['models']['generateContent']>> | undefined;
+  let usedModel = model;
   for (let attempt = 0; attempt < 2 && !response; attempt++) {
+    usedModel = attempt === 1 && fallbackModel && fallbackModel !== model ? fallbackModel : model;
     try {
       response = await client.models.generateContent({
-        model,
+        model: usedModel,
         contents: [
           {
             role: 'user',
@@ -85,6 +102,7 @@ export const recognizeImage = async (opts: {
         // Thinking tokens are billed as output, so count them for spend tracking.
         outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0),
       },
+      model: usedModel,
     };
   } catch (err) {
     if (err instanceof RecognitionInvalidError || err instanceof SyntaxError) {

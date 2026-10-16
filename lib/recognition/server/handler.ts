@@ -17,6 +17,8 @@ export interface RecognizeDeps {
   client: GeminiClient;
   limiter: Limiter;
   model: string;
+  /** Used for the one retry when `model` is overloaded; omit to retry `model` itself. */
+  fallbackModel?: string;
   log: (line: LogLine) => void;
 }
 
@@ -81,12 +83,14 @@ export const handleRecognize = async (
     if (!(await deps.limiter.allow('global', GLOBAL_KEY))) {
       throw new RecognizeError('budget-exhausted');
     }
-    const { result, usage } = await recognizeImage({
+    const { result, usage, model } = await recognizeImage({
       client: deps.client,
       model: deps.model,
+      fallbackModel: deps.fallbackModel,
       image,
     });
     line('ok', {
+      model,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       tiles: result.concealed.length + result.melds.flat().length,
