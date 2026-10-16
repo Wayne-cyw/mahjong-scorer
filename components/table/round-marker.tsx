@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, m } from 'motion/react';
+import { SPRING_FLIP } from '@/components/motion/tokens';
 import type { Wind } from '@/lib/tiles';
 import { WIND_LABEL } from './seat-card';
 
@@ -26,7 +27,7 @@ export function RoundMarker({ prevailing, hand, repeat }: RoundMarkerProps) {
             initial={{ rotateX: 90, opacity: 0, scale: 0.6 }}
             animate={{ rotateX: 0, opacity: 1, scale: 1 }}
             exit={{ rotateX: -90, opacity: 0, scale: 0.6 }}
-            transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+            transition={SPRING_FLIP}
           >
             {label.zh}
           </m.span>

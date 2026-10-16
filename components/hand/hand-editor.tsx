@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, m } from 'motion/react';
+import { SPRING_BOUNCE, SPRING_SNAP } from '@/components/motion/tokens';
 import type { Bonus, Tile as TileCode } from '@/lib/tiles';
 import { tileName } from '@/lib/tiles';
 import { addTile, removeTile, setWinningTile, type HandDraft } from '@/lib/game';
@@ -82,7 +83,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
                     initial={{ scale: 0.4, opacity: 0, y: 16 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.4, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                    transition={SPRING_SNAP}
                     className="relative"
                   >
                     <button
@@ -116,7 +117,7 @@ export function HandEditor({ draft, onChange, uncertain }: HandEditorProps) {
                         aria-hidden="true"
                         initial={{ scale: 2.6, rotate: -24, opacity: 0 }}
                         animate={{ scale: 1, rotate: -8, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                        transition={SPRING_BOUNCE}
                         className="bg-lacquer text-ivory font-display pointer-events-none absolute -top-2 -right-2 grid h-8 w-6 place-items-center rounded-sm text-sm leading-none font-black"
                       >
                         胡

@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, m } from 'motion/react';
+import { SPRING_SOFT } from '@/components/motion/tokens';
 import type { Seat, Wind } from '@/lib/tiles';
 import { cn } from '@/lib/utils';
 import { Seal } from '@/components/hk/seal';
@@ -60,7 +61,7 @@ export function SeatCard({
           initial={{ rotateY: 90, opacity: 0 }}
           animate={{ rotateY: 0, opacity: 1 }}
           exit={{ rotateY: -90, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          transition={SPRING_SOFT}
         >
           {label.zh}
         </m.span>

@@ -9,11 +9,18 @@ export type Slot = 'bottom' | 'right' | 'top' | 'left';
 export const SLOTS: readonly Slot[] = ['bottom', 'right', 'top', 'left'];
 
 /** How far each slot's content turns so its upright edge points at the player sitting there. */
-const FACING: Record<Slot, 0 | 90 | 180 | 270> = {
-  bottom: 0,
-  right: 270,
-  top: 180,
-  left: 90,
+type FacingDegrees = 0 | 90 | 180 | 270;
+
+const UPRIGHT: FacingDegrees = 0;
+const QUARTER_TURN: FacingDegrees = 90;
+const HALF_TURN: FacingDegrees = 180;
+const THREE_QUARTER_TURN: FacingDegrees = 270;
+
+const FACING: Record<Slot, FacingDegrees> = {
+  bottom: UPRIGHT,
+  right: THREE_QUARTER_TURN,
+  top: HALF_TURN,
+  left: QUARTER_TURN,
 };
 
 /** The seat sitting at `slot` once the table has been turned `turns` quarter turns. */
@@ -27,7 +34,7 @@ export function seatAtSlot(slot: Slot, turns: number): Seat {
  */
 export function Facing({ slot, children }: { slot: Slot; children: ReactNode }) {
   const turn = FACING[slot];
-  if (turn === 0 || turn === 180) {
+  if (turn === UPRIGHT || turn === HALF_TURN) {
     return (
       <div className="size-full" style={{ rotate: `${turn}deg` }}>
         {children}

@@ -3,8 +3,12 @@
 import { useState } from 'react';
 import { Shuffle } from 'lucide-react';
 import { m } from 'motion/react';
+import { SPRING_FLIP, stagger } from '@/components/motion/tokens';
 import type { Seat } from '@/lib/tiles';
 import { Button } from '@/components/ui/button';
+
+/** Seconds between each seat's field sliding in. */
+const SEAT_STAGGER = 0.06;
 
 const SEATS: readonly Seat[] = [0, 1, 2, 3];
 
@@ -40,7 +44,7 @@ export function PlayerFields({
             aria-hidden="true"
             initial={shuffles > 0 ? { rotateY: 180, scale: 0.8 } : false}
             animate={{ rotateY: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 18, delay: seat * 0.06 }}
+            transition={{ ...SPRING_FLIP, delay: stagger(seat, SEAT_STAGGER) }}
             className="bg-ivory text-lacquer font-display border-green grid h-16 w-12 shrink-0 place-items-center rounded-[7px] border-b-[5px] text-3xl leading-none font-black"
           >
             {SEAT_GLYPH[seat]}
