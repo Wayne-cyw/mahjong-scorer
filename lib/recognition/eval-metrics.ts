@@ -5,7 +5,11 @@ import { bonusSchema, tileSchema } from '@/lib/tiles';
 export const labelsSchema = z
   .array(
     z.object({
-      file: z.string().min(1),
+      // A bare file name inside the photo folder: no separators or `..` to escape it.
+      file: z
+        .string()
+        .min(1)
+        .refine((f) => !/[\\/]/.test(f) && f !== '..', 'must be a file name, not a path'),
       set: z.string().optional(), // which physical tile set, to check coverage across sets
       lighting: z.string().optional(), // e.g. bright, dim, warm
       concealed: z.array(tileSchema),

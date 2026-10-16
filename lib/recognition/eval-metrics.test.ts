@@ -198,4 +198,17 @@ describe('labelsSchema', () => {
     ).toBe(false);
     expect(labelsSchema.safeParse([{ concealed: [], melds: [], bonus: [] }]).success).toBe(false);
   });
+
+  it.each(['../secret.jpg', 'sub/photo.jpg', 'sub\\photo.jpg', '..'])(
+    'rejects %s: a file must be a bare name inside the photo folder',
+    (file) => {
+      const raw = [{ file, concealed: [], melds: [], bonus: [] }];
+      expect(labelsSchema.safeParse(raw).success).toBe(false);
+    },
+  );
+
+  it('accepts a bare file name', () => {
+    const raw = [{ file: 'hand 01.jpg', concealed: [], melds: [], bonus: [] }];
+    expect(labelsSchema.safeParse(raw).success).toBe(true);
+  });
 });

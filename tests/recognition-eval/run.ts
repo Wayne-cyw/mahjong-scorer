@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import sharp from 'sharp';
 import {
+  estimateCost,
   groupSummaries,
   labelsSchema,
   matchTiles,
@@ -73,6 +74,7 @@ const parseCli = () => {
       'max-edge': { type: 'string', default: '1568' },
       'input-price': { type: 'string' },
       'output-price': { type: 'string' },
+      'max-cost': { type: 'string', default: '0.5' },
       limit: { type: 'string' },
     },
     allowPositionals: false,
@@ -140,6 +142,7 @@ const main = async (): Promise<void> => {
     input: positive('input-price', inputPrice),
     output: positive('output-price', outputPrice),
   };
+  const maxCost = positive('max-cost', values['max-cost']);
   const labels: Label[] = limit ? parsed.data.slice(0, limit) : parsed.data;
   if (labels.length === 0)
     return fail(`${labelsPath} lists no photos, so there is nothing to evaluate.`);
@@ -148,9 +151,14 @@ const main = async (): Promise<void> => {
   const client = new GoogleGenAI({ apiKey });
   const items: { tags: { set?: string; lighting?: string }; outcome: PhotoOutcome }[] = [];
 
-  console.log(`Evaluating ${labels.length} photo(s) with ${model} at ${maxEdge} px\n`);
+  console.log(
+    `Evaluating ${labels.length} photo(s) with ${model} at ${maxEdge} px: up to ` +
+      `${labels.length * 2} model calls (one retry each), stopping once estimated spend ` +
+      `reaches $${maxCost} (--max-cost).\n`,
+  );
   let upstreamStreak = 0;
   let stoppedEarly = false;
+  let spent = 0;
   for (const [i, label] of labels.entries()) {
     const expected = matchTiles(label, label).expected;
     const tags = { set: label.set, lighting: label.lighting };
@@ -189,6 +197,18 @@ const main = async (): Promise<void> => {
     items.push({ tags, outcome });
     const mark = outcome.ok ? (outcome.exact ? 'ok  ' : 'diff') : 'FAIL';
     console.log(`[${i + 1}/${labels.length}] ${mark} ${label.file} (${ms(outcome.latencyMs)})`);
+
+    // Failed requests report no usage, so this under-counts; --max-cost is a floor, not a promise.
+    if (outcome.ok) spent += estimateCost(outcome.inputTokens, outcome.outputTokens, prices);
+    if (spent >= maxCost) {
+      stoppedEarly = true;
+      console.log(
+        `\nStopping: estimated spend $${spent.toFixed(4)} reached --max-cost $${maxCost}. ` +
+          'Raise --max-cost to run the remaining photos. The results below cover only the ' +
+          'photos already run.',
+      );
+      break;
+    }
 
     upstreamStreak = !outcome.ok && outcome.error === 'upstream' ? upstreamStreak + 1 : 0;
     if (upstreamStreak >= MAX_CONSECUTIVE_UPSTREAM) {
@@ -229,6 +249,12 @@ const main = async (): Promise<void> => {
     `\nCost uses $${prices.input}/M input and $${prices.output}/M output tokens; ` +
       'these come from --input-price and --output-price.',
   );
+  if (failures.length > 0) {
+    console.log(
+      `Cost per hand excludes ${failures.length} failed photo(s), which report no usage but ` +
+        'may still have been billed, so the real figure can be higher.',
+    );
+  }
 };
 
 main().catch((error: unknown) => {

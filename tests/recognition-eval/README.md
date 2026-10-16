@@ -35,6 +35,7 @@ pnpm eval --input-price <usd per M> --output-price <usd per M>
 pnpm eval --model gemini-3.8-flash --input-price <p> --output-price <p>
 pnpm eval --max-edge 2048 ...  # test the larger-image question from the design doc
 pnpm eval --limit 20 ...       # quick smoke run, cheapest way to check a change
+pnpm eval --max-cost 2 ...     # allow a larger run; the default stops at $0.50
 ```
 
 | Flag             | Default                                    | Meaning                                            |
@@ -45,6 +46,7 @@ pnpm eval --limit 20 ...       # quick smoke run, cheapest way to check a change
 | `--max-edge`     | `1568`                                     | Long edge in px after resize (the phone uses 1568) |
 | `--input-price`  | required                                   | US dollars per million input tokens, for cost      |
 | `--output-price` | required                                   | US dollars per million output tokens, for cost     |
+| `--max-cost`     | `0.5`                                      | Stop once estimated spend reaches this many USD    |
 | `--limit`        | all                                        | Only run the first N labelled photos               |
 
 Photos are resized the way the phone does (orientation fixed, 1568 px long edge, JPEG 0.85,
@@ -63,7 +65,9 @@ metadata dropped) before they are sent. Nothing is written to disk.
 - **Cost per hand**: estimated from token usage and the prices you pass. There are no defaults, so a
   stale list price cannot silently misreport cost; copy them from Google's current pricing page.
   Output tokens include thinking tokens, which are billed as output. Failed requests report no usage and are left
-  out of the average.
+  out of the average, though they may still have been billed, so the real figure can be higher.
+- **Spend ceiling**: the run stops once estimated spend reaches `--max-cost` (exit code `1`).
+  It counts only requests that returned usage, so treat it as a floor on real spend.
 - A breakdown by `set` and by `lighting`, and the list of failed photos.
 
 The Phase 3 gate also needs a 10 s p95 round trip and a 15 s median per hand in table tests;
