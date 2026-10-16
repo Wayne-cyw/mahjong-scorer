@@ -47,17 +47,20 @@ const prepare = async (path: string, maxEdge: number): Promise<Uint8Array> => {
   return new Uint8Array(out);
 };
 
+/** Single place for stdout output so the report code stays terse. */
+const print = (line = ''): void => console.log(line);
+
 const pct = (n: number): string => (Number.isNaN(n) ? 'n/a' : `${(n * 100).toFixed(1)}%`);
 const ms = (n: number): string => (Number.isNaN(n) ? 'n/a' : `${Math.round(n)} ms`);
 const usd = (n: number): string => (Number.isNaN(n) ? 'n/a' : `$${n.toFixed(4)}`);
 
 const printSummary = (title: string, s: Summary): void => {
-  console.log(`${title}`);
-  console.log(`  photos              ${s.photos}`);
-  console.log(`  per-tile accuracy   ${pct(s.tileAccuracy)}`);
-  console.log(`  zero-correction     ${pct(s.zeroCorrectionRate)}`);
-  console.log(`  latency p50 / p95   ${ms(s.latencyP50)} / ${ms(s.latencyP95)}`);
-  console.log(`  cost per hand       ${usd(s.costPerHand)}`);
+  print(title);
+  print(`  photos              ${s.photos}`);
+  print(`  per-tile accuracy   ${pct(s.tileAccuracy)}`);
+  print(`  zero-correction     ${pct(s.zeroCorrectionRate)}`);
+  print(`  latency p50 / p95   ${ms(s.latencyP50)} / ${ms(s.latencyP95)}`);
+  print(`  cost per hand       ${usd(s.costPerHand)}`);
 };
 
 /** Stop early after this many photos in a row fail with `upstream`: that is a key, quota or outage
@@ -159,7 +162,7 @@ const main = async (): Promise<void> => {
   const client = new GoogleGenAI({ apiKey });
   const items: { tags: { set?: string; lighting?: string }; outcome: PhotoOutcome }[] = [];
 
-  console.log(
+  print(
     `Evaluating ${labels.length} photo(s) with ${model} at ${maxEdge} px: up to ` +
       `${labels.length * 2} model calls (one retry each), stopping once estimated spend ` +
       `reaches $${maxCost} (--max-cost).\n`,
@@ -204,7 +207,7 @@ const main = async (): Promise<void> => {
     }
     items.push({ tags, outcome });
     const mark = outcome.ok ? (outcome.exact ? 'ok  ' : 'diff') : 'FAIL';
-    console.log(`[${i + 1}/${labels.length}] ${mark} ${label.file} (${ms(outcome.latencyMs)})`);
+    print(`[${i + 1}/${labels.length}] ${mark} ${label.file} (${ms(outcome.latencyMs)})`);
 
     if (outcome.ok) {
       spent += estimateCost(outcome.inputTokens, outcome.outputTokens, prices);
@@ -215,7 +218,7 @@ const main = async (): Promise<void> => {
       // Reaching the ceiling on the last photo is a finished run, not an early stop.
       if (i < labels.length - 1) {
         stoppedEarly = true;
-        console.log(
+        print(
           `\nStopping: estimated spend $${spent.toFixed(4)} reached --max-cost $${maxCost}. ` +
             'Raise --max-cost to run the remaining photos. The results below cover only the ' +
             'photos already run.',
@@ -227,7 +230,7 @@ const main = async (): Promise<void> => {
     upstreamStreak = !outcome.ok && outcome.error === 'upstream' ? upstreamStreak + 1 : 0;
     if (upstreamStreak >= MAX_CONSECUTIVE_UPSTREAM) {
       stoppedEarly = true;
-      console.log(
+      print(
         `\nStopping after ${MAX_CONSECUTIVE_UPSTREAM} "upstream" failures in a row. That usually ` +
           'means a rate limit, an invalid key or an outage, not a misread photo. The results ' +
           'below cover only the photos already run.',
@@ -237,34 +240,34 @@ const main = async (): Promise<void> => {
   }
 
   const outcomes = items.map((i) => i.outcome);
-  console.log('');
+  print('');
   printSummary('Overall', summarize(outcomes, prices));
   for (const by of ['set', 'lighting'] as const) {
-    console.log(`\nBy ${by}`);
+    print(`\nBy ${by}`);
     for (const [key, s] of groupSummaries(items, by, prices)) {
-      console.log(
+      print(
         `  ${key.padEnd(18)} n=${String(s.photos).padStart(3)}  tiles ${pct(s.tileAccuracy)}  zero-correction ${pct(s.zeroCorrectionRate)}`,
       );
     }
   }
   const failures = summarize(outcomes, prices).failures;
   if (failures.length > 0) {
-    console.log('\nFailures (their latency is left out of the percentiles above)');
-    for (const f of failures) console.log(`  ${f.file}: ${f.error}`);
+    print('\nFailures (their latency is left out of the percentiles above)');
+    for (const f of failures) print(`  ${f.file}: ${f.error}`);
     if (failures.some((f) => f.error === 'upstream')) {
-      console.log(
+      print(
         '  Note: "upstream" covers any API error other than a timeout, including a rate limit ' +
           'or an invalid key. Treat a run with many of them as inconclusive, not as bad accuracy.',
       );
     }
   }
   if (stoppedEarly) process.exitCode = 1;
-  console.log(
+  print(
     `\nCost uses $${prices.input}/M input and $${prices.output}/M output tokens; ` +
       'these come from --input-price and --output-price.',
   );
   if (failures.length > 0) {
-    console.log(
+    print(
       `Cost per hand excludes ${failures.length} failed photo(s), which report no usage but ` +
         'may still have been billed, so the real figure can be higher.',
     );
