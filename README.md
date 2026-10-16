@@ -10,9 +10,10 @@
 </p>
 
 <p align="center">
-  <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/Wayne-cyw/mahjong-scorer/ci.yml">
-  <img alt="License" src="https://img.shields.io/github/license/Wayne-cyw/mahjong-scorer">
-  <img alt="Language" src="https://img.shields.io/github/languages/top/Wayne-cyw/mahjong-scorer">
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white">
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-PWA-black?logo=nextdotjs">
+  <img alt="Local-first" src="https://img.shields.io/badge/local--first-offline-orange">
 </p>
 
 ---
@@ -45,7 +46,41 @@ Hong Kong mahjong scoring is hard to do correctly at speed: patterns overlap, so
 
 ## Architecture
 
-The phone owns everything. A user action in a Zustand store appends an event to a Dexie (IndexedDB) log, a pure reducer replays the log into game state, and the UI renders that derived state. For photo scoring, the client compresses the image and posts it to `/api/recognize`, which rate-limits the request (Upstash Redis), asks Gemini for tiles under a Zod-generated JSON schema, validates the response, and returns a draft hand. The pure scoring engine then computes fan and payments on the device.
+The phone owns everything. A user action in a Zustand store appends an event to a Dexie (IndexedDB) log, a pure reducer replays the log into game state, and the UI renders that derived state. The only server code is one stateless route that turns a hand photo into a draft hand.
+
+```mermaid
+flowchart LR
+  UI[React UI] -->|action| Store[Zustand store actions]
+  Store -->|append event| Log[(Dexie event log)]
+  Log -->|replay| Reducer[Pure game reducer]
+  Reducer -->|derived state| UI
+  Reducer --> Engine[Pure scoring engine]
+  Engine -->|fan and payments| UI
+  Store -.->|photo| API["/api/recognize"]
+  API -.-> Gemini[Gemini vision]
+```
+
+### Photo to score
+
+The client compresses the photo and posts it to `/api/recognize`, which rate-limits the request (Upstash Redis), asks Gemini for tiles under a Zod-generated JSON schema, and validates the reply. A person confirms or edits the tiles before the on-device scoring engine computes fan and payments.
+
+```mermaid
+sequenceDiagram
+  actor P as Player
+  participant C as Phone (PWA)
+  participant R as /api/recognize
+  participant G as Gemini
+  P->>C: Photograph winning hand
+  C->>C: Compress image
+  C->>R: POST photo
+  R->>R: Rate limit and size check
+  R->>G: Tiles request with JSON schema
+  G-->>R: Tile list
+  R->>R: Validate with Zod
+  R-->>C: Draft hand
+  P->>C: Confirm or edit tiles
+  C->>C: Score fan, settle payments, append event
+```
 
 ### Key design decisions
 
