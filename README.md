@@ -2,7 +2,7 @@
 <p align="center"><b>Photograph a winning Hong Kong mahjong hand and get the fan, payments and next dealer instantly, with no account and full offline play.</b></p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Demo of Mahjong Scorer" width="700">
+  <img src="assets/demo.gif" alt="Demo of Mahjong Scorer" width="260">
 </p>
 
 <p align="center">
