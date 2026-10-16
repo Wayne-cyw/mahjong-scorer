@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getPreset } from '@/lib/scoring';
+import { ENGINE_VERSION, getPreset } from '@/lib/scoring';
 import { tileName, type Seat, type Tile } from '@/lib/tiles';
 import { ReviewScreen } from '@/components/hand/review-screen';
 
@@ -103,7 +103,7 @@ describe('ReviewScreen', () => {
     expect(arg.hand.concealed).toHaveLength(14);
     expect(arg.fan).toBeGreaterThanOrEqual(ruleset.minFan);
     expect(arg.breakdown.length).toBeGreaterThan(0);
-    expect(arg.engineVersion).toMatch(/^\d+\.\d+\.\d+/);
+    expect(arg.engineVersion).toBe(ENGINE_VERSION);
   });
 
   it('scores a discard win as not self-drawn', () => {
