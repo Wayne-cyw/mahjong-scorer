@@ -10,20 +10,25 @@ export interface PaymentsPreviewProps {
 /** Read-only preview of each seat's point change (PD-13): computed by `settle`, shown before Confirm. */
 export function PaymentsPreview({ payments, seatLabel }: PaymentsPreviewProps) {
   return (
-    <section aria-label="Payments preview" className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold">Payments</h2>
-      <ul className="flex flex-col gap-1">
+    <section
+      aria-label="Payments preview"
+      className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
+    >
+      <h2 className="font-display text-xl font-black">Payments</h2>
+      <ul className="flex flex-col gap-2">
         {SEATS.map((seat) => {
           const amount = payments[seat];
           const sign = amount > 0 ? '+' : '';
           return (
-            <li key={seat} className="flex items-center justify-between gap-2 text-base">
+            <li
+              key={seat}
+              style={{ ['--i' as string]: seat }}
+              className="anim-rise flex items-center justify-between gap-2 text-lg"
+            >
               <span>{seatLabel(seat)}</span>
               <span
                 className={
-                  amount >= 0
-                    ? 'font-semibold text-green-700 tabular-nums'
-                    : 'font-semibold text-red-700 tabular-nums'
+                  amount >= 0 ? 'numerals text-green text-xl' : 'numerals text-lacquer text-xl'
                 }
               >
                 {sign}

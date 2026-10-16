@@ -6,7 +6,10 @@ import type { Seat } from '@/lib/tiles';
 import { DEFAULT_PRESET_ID, PRESETS } from '@/lib/scoring';
 import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
+import { Screen } from '@/components/hk/screen';
+import { Button } from '@/components/ui/button';
 import { PlayerFields, shuffle } from '@/components/setup/player-fields';
+import { StepTrail } from '@/components/setup/step-trail';
 import { PresetPicker } from '@/components/setup/preset-picker';
 import { FirstDealer } from '@/components/setup/first-dealer';
 
@@ -91,9 +94,15 @@ export function SetupClient() {
 
   const dealerPlayers = names.map((name, seat) => ({ seat: seat as Seat, name }));
 
+  const alert = (message: string) => (
+    <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
+      {message}
+    </p>
+  );
+
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">New game</h1>
+    <Screen title="New game" glyph="開">
+      <StepTrail current={step} />
 
       {step === 'players' && (
         <>
@@ -103,18 +112,10 @@ export function SetupClient() {
             onShuffle={handleShuffle}
             suggestions={suggestions}
           />
-          {validationError && (
-            <p role="alert" className="text-red-600">
-              {validationError}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={handlePlayersNext}
-            className="min-h-12 rounded bg-neutral-900 px-4 font-medium text-white"
-          >
+          {validationError && alert(validationError)}
+          <Button type="button" onClick={handlePlayersNext} className="h-14 px-4 text-lg">
             Next: rules
-          </button>
+          </Button>
         </>
       )}
 
@@ -122,20 +123,21 @@ export function SetupClient() {
         <>
           <PresetPicker presets={PRESETS} selectedId={presetId} onSelect={setPresetId} />
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setStep('players')}
-              className="min-h-12 rounded border border-neutral-500 px-4 font-medium"
+              className="h-14 px-5 text-lg"
             >
               Back
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => setStep('dealer')}
-              className="min-h-12 rounded bg-neutral-900 px-4 font-medium text-white"
+              className="h-14 flex-1 px-4 text-lg"
             >
               Next: first dealer
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -147,21 +149,18 @@ export function SetupClient() {
             onChosen={handleFirstDealerChosen}
             disabled={submitting}
           />
-          {submitError && (
-            <p role="alert" className="text-red-600">
-              {submitError}
-            </p>
-          )}
-          <button
+          {submitError && alert(submitError)}
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setStep('preset')}
             disabled={submitting}
-            className="min-h-12 rounded border border-neutral-500 px-4 font-medium disabled:opacity-50"
+            className="h-14 px-5 text-lg"
           >
             Back
-          </button>
+          </Button>
         </>
       )}
-    </main>
+    </Screen>
   );
 }

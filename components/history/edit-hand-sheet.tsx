@@ -95,11 +95,8 @@ export function EditHandSheet({
   const title = mode === 'undo' ? 'Undo this hand?' : 'Edit this hand';
 
   return (
-    <section
-      aria-label={title}
-      className="border-border bg-card flex flex-col gap-3 rounded-lg border-2 p-4"
-    >
-      <h3 className="text-lg font-semibold">{title}</h3>
+    <section aria-label={title} className="bg-cream-deep flex flex-col gap-3 rounded-md p-4">
+      <h3 className="font-display text-xl font-black">{title}</h3>
 
       {mode === 'edit' && (
         <div className="flex flex-col gap-3">
@@ -110,7 +107,7 @@ export function EditHandSheet({
               inputMode="numeric"
               value={fanText}
               onChange={(e) => setFanText(e.target.value)}
-              className="border-input h-12 rounded-md border px-3 text-lg"
+              className="bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
             />
           </label>
           <label className="flex flex-col gap-1 text-base">
@@ -118,7 +115,7 @@ export function EditHandSheet({
             <select
               value={discarder}
               onChange={(e) => setDiscarder(e.target.value)}
-              className="border-input h-12 rounded-md border px-3 text-lg"
+              className="bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none"
             >
               <option value={SELF_DRAWN}>Self-drawn (自摸)</option>
               {[0, 1, 2, 3]
@@ -140,7 +137,7 @@ export function EditHandSheet({
             <p>{preview.laterHandsAffected} later hand(s) will be re-scored.</p>
           )}
           {preview.dealerChanged && (
-            <p role="alert" className="font-semibold text-red-700">
+            <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-bold">
               Warning: the dealer changes from {seatNames[preview.before.dealer]} to{' '}
               {seatNames[preview.after.dealer]}.
             </p>
@@ -149,7 +146,7 @@ export function EditHandSheet({
       )}
 
       {error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
           {error}
         </p>
       )}

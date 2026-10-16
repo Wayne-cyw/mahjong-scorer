@@ -104,13 +104,13 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
       <LayoutGuide />
 
       {phase === 'no-hand' && (
-        <p role="alert" className="text-base">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 text-base font-medium">
           We couldn&apos;t see a mahjong hand in that photo. Lay the tiles out as shown and try
           again, or enter the hand manually.
         </p>
       )}
       {phase === 'working' && (
-        <p role="status" className="text-base">
+        <p role="status" className="anim-lamp bg-cream-raised rounded-md p-3 text-base font-bold">
           Reading your tiles…
         </p>
       )}
@@ -134,7 +134,7 @@ export function CameraCapture({ onRecognized, onFailure, onSkip }: CameraCapture
         type="button"
         onClick={openCamera}
         disabled={phase === 'working'}
-        className="h-12 px-4 text-base"
+        className="h-16 px-4 text-xl"
       >
         {phase === 'no-hand' ? 'Try again' : 'Take photo'}
       </Button>

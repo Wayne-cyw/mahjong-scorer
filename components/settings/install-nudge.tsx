@@ -58,10 +58,10 @@ export function InstallNudge() {
   return (
     <aside
       role="note"
-      className="border-border bg-card m-4 flex items-center justify-between gap-3 rounded-lg border p-3 text-base"
+      className="bg-green-deep text-ivory m-4 flex items-center justify-between gap-3 rounded-md p-3 text-base font-medium"
     >
       <p>Tap Share, then Add to Home Screen, so your games are kept safe on this phone.</p>
-      <Button type="button" variant="outline" onClick={dismiss} className="h-12 px-4 text-base">
+      <Button type="button" variant="secondary" onClick={dismiss} className="h-12 px-4 text-base">
         Got it
       </Button>
     </aside>

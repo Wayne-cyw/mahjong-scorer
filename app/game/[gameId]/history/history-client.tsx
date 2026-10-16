@@ -6,6 +6,8 @@ import { listPlayers } from '@/lib/db';
 import { useGameStore } from '@/stores/game-store';
 import { HandList } from '@/components/history/hand-list';
 import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/hk/screen';
+import { StatusScreen } from '@/components/hk/status-screen';
 
 export interface HistoryClientProps {
   gameId: string;
@@ -54,31 +56,33 @@ export function HistoryClient({ gameId }: HistoryClientProps) {
 
   if (initializing) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <StatusScreen>
         <p>Loading history…</p>
-      </main>
+      </StatusScreen>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">History</h1>
+    <Screen
+      title="History"
+      glyph="譜"
+      action={
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push(`/game/${gameId}`)}
-          className="h-12 px-4 text-base"
+          className="h-11 px-3 text-base"
         >
           Back to table
         </Button>
-      </header>
+      }
+    >
       {storeError && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
           {storeError}
         </p>
       )}
       <HandList playerNames={playerNames} />
-    </main>
+    </Screen>
   );
 }

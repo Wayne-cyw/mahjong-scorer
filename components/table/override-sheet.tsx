@@ -50,14 +50,15 @@ export function OverrideSheet({ seatNames, initial, onSubmit, onCancel }: Overri
     });
   };
 
-  const fieldClass = 'border-input h-12 rounded-md border px-3 text-lg';
+  const fieldClass =
+    'bg-cream border-cream-edge focus-visible:border-sign h-12 rounded-md border-b-4 px-3 text-lg outline-none';
 
   return (
     <section
       aria-label="Override table state"
-      className="border-border bg-card flex flex-col gap-3 rounded-lg border-2 p-4"
+      className="bg-cream-raised flex flex-col gap-3 rounded-md p-4"
     >
-      <h3 className="text-lg font-semibold">Override table state</h3>
+      <h3 className="font-display text-xl font-black">Override table state</h3>
       <label className="flex flex-col gap-1 text-base">
         Dealer
         <select value={dealer} onChange={(e) => setDealer(e.target.value)} className={fieldClass}>
@@ -93,7 +94,7 @@ export function OverrideSheet({ seatNames, initial, onSubmit, onCancel }: Overri
         />
       </label>
       {error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="bg-lacquer text-ivory rounded-md p-3 font-medium">
           {error}
         </p>
       )}

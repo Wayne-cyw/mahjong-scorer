@@ -35,7 +35,7 @@ export function HandList({ playerNames = {} }: HandListProps) {
   const ruleset = state.ruleset;
 
   if (history.length === 0) {
-    return <p className="text-muted-foreground">No hands yet.</p>;
+    return <p className="text-ink-dim text-lg">No hands yet.</p>;
   }
 
   const describe = (record: HandRecord): string => {
@@ -62,13 +62,17 @@ export function HandList({ playerNames = {} }: HandListProps) {
         const wind = WIND_LABEL[record.prevailingBefore];
         const active = pending?.id === record.id ? pending : null;
         return (
-          <li key={record.id} className="border-border flex flex-col gap-2 rounded-lg border p-3">
+          <li
+            key={record.id}
+            style={{ ['--i' as string]: Math.min(index, 8) }}
+            className="anim-rise bg-cream-raised flex flex-col gap-3 rounded-md p-3"
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-ink-dim text-sm">
                   Hand {index + 1} · {wind.en} ({wind.zh}) · dealer {names[record.dealerBefore]}
                 </p>
-                <p className="text-lg font-semibold">{describe(record)}</p>
+                <p className="font-display text-lg leading-snug font-black">{describe(record)}</p>
               </div>
               {!active && (
                 <div className="flex gap-2">

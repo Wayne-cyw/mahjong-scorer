@@ -90,6 +90,12 @@ describe('TableView', () => {
     expect(root).toHaveAttribute('data-orientation', '0');
   });
 
+  it('does not show a score change when the table is rotated', () => {
+    render(<TableView playerNames={{}} />);
+    fireEvent.click(screen.getByRole('button', { name: /rotate/i }));
+    expect(screen.queryByText(/^[+−]\d+$/)).not.toBeInTheDocument();
+  });
+
   it('renders Hand over and End now controls', () => {
     render(<TableView playerNames={{}} />);
     expect(screen.getByRole('button', { name: /hand over/i })).toBeInTheDocument();

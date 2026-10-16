@@ -36,7 +36,7 @@ export function UpdatePrompt() {
   return (
     <div
       role="status"
-      className="bg-primary text-primary-foreground fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-3 p-3 text-base"
+      className="bg-green-deep text-ivory fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-3 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-base font-bold"
     >
       <span>Update ready</span>
       <Button

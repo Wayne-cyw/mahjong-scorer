@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { StatusScreen } from '@/components/hk/status-screen';
 import { InstallNudge } from '@/components/settings/install-nudge';
 import { TableView } from '@/components/table/table-view';
 import { listPlayers } from '@/lib/db';
@@ -69,22 +70,22 @@ export function GameClient({ gameId }: GameClientProps) {
 
   if (initializing) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <StatusScreen>
         <p>Loading game…</p>
-      </main>
+      </StatusScreen>
     );
   }
 
   if (loadFailed || eventCount === 0) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+      <StatusScreen>
         <p role="alert">
           {loadFailed ? (error ?? 'Could not load this game.') : 'Game not found.'}
         </p>
         <Button type="button" onClick={() => router.push('/')} className="h-12 px-6 text-base">
           Home
         </Button>
-      </main>
+      </StatusScreen>
     );
   }
 

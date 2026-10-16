@@ -11,11 +11,11 @@ export interface PresetPickerProps {
 export function PresetPicker({ presets, selectedId, onSelect }: PresetPickerProps) {
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-lg font-semibold">Rules</legend>
+      <legend className="font-display mb-3 text-xl font-black">Rules</legend>
       {presets.map((preset) => (
         <label
           key={preset.id}
-          className="flex min-h-12 items-center gap-3 rounded border border-neutral-400 px-3"
+          className="bg-cream-raised border-cream-edge has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:border-green-deep has-[:focus-visible]:ring-ring/60 flex min-h-16 cursor-pointer items-center gap-4 rounded-md border-b-4 px-4 transition-[background-color,color,transform] duration-200 has-[:checked]:-translate-y-0.5 has-[:focus-visible]:ring-[3px]"
         >
           <input
             type="radio"
@@ -23,9 +23,13 @@ export function PresetPicker({ presets, selectedId, onSelect }: PresetPickerProp
             value={preset.id}
             checked={selectedId === preset.id}
             onChange={() => onSelect(preset.id)}
-            className="h-5 w-5"
+            className="peer sr-only"
           />
-          <span className="font-medium">{preset.name}</span>
+          <span
+            aria-hidden="true"
+            className="border-ink-dim peer-checked:border-ivory peer-checked:bg-ivory grid size-7 shrink-0 place-items-center rounded-full border-4"
+          />
+          <span className="font-display text-lg leading-snug font-black">{preset.name}</span>
         </label>
       ))}
     </fieldset>

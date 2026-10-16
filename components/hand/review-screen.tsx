@@ -113,18 +113,18 @@ export function ReviewScreen({
   return (
     <div className="flex flex-col gap-6">
       {notice && (
-        <p role="status" className="text-sm">
+        <p role="status" className="bg-cream-raised rounded-md p-3 text-base">
           {notice}
         </p>
       )}
       {uncertain &&
         (uncertain.concealed.size > 0 || uncertain.melds.size > 0 || uncertain.bonus.size > 0) && (
-          <p role="status" className="text-sm">
+          <p role="status" className="bg-cream-raised rounded-md p-3 text-base">
             Tiles outlined in amber were hard to read. Check them against the photo.
           </p>
         )}
       {warnings.length > 0 && (
-        <ul className="text-muted-foreground list-disc pl-5 text-sm">
+        <ul className="text-ink-dim list-disc pl-5 text-sm">
           {warnings.map((w) => (
             <li key={w}>{w}</li>
           ))}
@@ -136,7 +136,7 @@ export function ReviewScreen({
         <img
           src={photoUrl}
           alt="Photo of your hand, for reference"
-          className="border-border max-h-48 w-full rounded-md border object-contain"
+          className="bg-cream-deep max-h-48 w-full rounded-md object-contain"
         />
       )}
       <HandEditor draft={draft} onChange={change} uncertain={uncertain} />
@@ -144,7 +144,7 @@ export function ReviewScreen({
       <FlagsPanel draft={draft} onChange={change} />
 
       {result === null ? (
-        <p role="status" className="text-muted-foreground text-sm">
+        <p role="status" className="text-ink-dim text-base">
           Add your tiles and mark the winning tile to see the score.
         </p>
       ) : (
