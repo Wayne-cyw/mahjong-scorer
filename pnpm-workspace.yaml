@@ -7,3 +7,10 @@ allowBuilds:
 overrides:
   browserslist: ^4.28.7
   source-map-js: ^1.2.2
+  dompurify: ^3.4.17
+  '@serwist/build>glob': ^14.0.2
+  '@sentry/bundler-plugins>glob': ^14.0.2
+  '@serwist/build>zod': ^4.6.7
+  '@serwist/next>zod': ^4.6.7
+  '@serwist/next>glob': ^14.0.2
+  '@serwist/webpack-plugin>zod': ^4.6.7
