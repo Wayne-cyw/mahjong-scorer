@@ -65,5 +65,5 @@ pnpm-debug.log*
 .claude/worktrees/
 
 # Local plans, notes and subagent workspaces
-docs/
+docs/private/
 .superpowers/
